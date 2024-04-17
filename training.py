@@ -58,20 +58,60 @@ def rms(array):
    return np.sqrt(np.mean(array ** 2))
 
 # All PF candidate properties
-pfcand_fields_all = ['puppiweight','pt_rel','pt_rel_log',
-                    'z0','dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
-                    'track_chi2norm','track_qual','track_npar','track_nstubs','track_vx','track_vy','track_vz','track_pterror',
-                    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-                    # 'cluster_egvspion','cluster_egvspu'
-                    # 'pt_log','px','py','pz','eta','phi','mass','energy_log',
-                    'pt_log','eta','phi',
-                    ]
-# A slightly reduced set
-pfcand_fields_baseline = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"]
-pfcand_fields_ext1 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'puppiweight','dxy_custom','etarel','pperp_ratio','ppara_ratio']
-pfcand_fields_ext2 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'pt_log','eta','phi',]
+# pfcand_fields_all = ['puppiweight','pt_rel','pt_rel_log',
+#                     'z0','dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+#                     'track_chi2norm','track_qual','track_npar','track_nstubs','track_vx','track_vy','track_vz','track_pterror',
+#                     'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+#                     # 'cluster_egvspion','cluster_egvspu'
+#                     # 'pt_log','px','py','pz','eta','phi','mass','energy_log',
+#                     'pt_log','eta','phi',
+#                     ]
+# # A slightly reduced set
+# pfcand_fields_baseline = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"]
+# pfcand_fields_ext1 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+#             'puppiweight','dxy_custom','etarel','pperp_ratio','ppara_ratio']
+# pfcand_fields_ext2 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+#             'pt_log','eta','phi',]
+
+pfcand_fields_all = [
+            'puppiweight','pt_rel','pt_rel_log',
+            'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+            'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
+            'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+            'pt_log','eta','phi',
+
+            'emid','quality','tkquality',
+            'track_valid','track_rinv',
+            'track_phizero','track_tanl','track_z0','z0',
+            'track_d0','track_chi2rphi','track_chi2rz',
+            'track_bendchi2','track_hitpattern','track_nstubs',
+            # 'track_mvaquality',
+            'track_mvaother',
+
+            ]
+        # A slightly reduced set
+pfcand_fields_baseline = [
+            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"
+            ]
+        # a custom set
+pfcand_fields_ext1 = [
+            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+            'puppiweight',
+
+            ]
+        # let's take all HW values
+pfcand_fields_ext2 = [
+            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+            'pt_log','eta','phi',
+
+            'emid','quality','tkquality',
+            'track_valid','track_rinv',
+            'track_phizero','track_tanl','track_z0','z0',
+            'track_d0','track_chi2rphi','track_chi2rz',
+            'track_bendchi2','track_hitpattern','track_nstubs',
+            # 'track_mvaquality',
+            'track_mvaother',
+            ]
 
 def doTraining(
         filetag,
@@ -80,6 +120,7 @@ def doTraining(
         nnConfig,
         save = True,
         strstamp = "strstamp",
+        test = False,
         workdir = "./",):
 
     # timestamp = datetime.now()
@@ -123,10 +164,13 @@ def doTraining(
     chunksmatching = glob.glob(PATH_load+"X_"+inputSetTag+"_test*.parquet")
     chunksmatching = [chunksm.replace(PATH_load+"X_"+inputSetTag+"_test","").replace(".parquet","").replace("_","") for chunksm in chunksmatching]
 
-    # chunksmatching = chunksmatching[:5]
+    if test:
+        import random
+        chunksmatching = random.sample(chunksmatching, 5)
+        # chunksmatching = chunksmatching[:5]
 
     # filter = "/(jet)_(eta|phi|pt|pt_raw|mass|energy|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
-    filter = "/(jet)_(eta|phi|pt|pt_raw|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
+    filter = "/(jet)_(eta|eta_phys|phi|pt|pt_phys|pt_raw|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
 
     print ("Loading data in all",len(chunksmatching),"chunks.")
 
@@ -300,16 +344,16 @@ def doTraining(
     # get pT weights, weighting all to b spectrum
     bins_pt_weights = np.array([15, 20, 25, 30, 38, 48, 60, 76, 97, 122, 154, 195, 246, 311, 393, 496, 627, 792, 9999999999999999999])
     bins_eta_weights = np.array([-99, -1.5, -0.5, 0., 0.5, 1.5, 99])
-    counts_b, edges_b = np.histogram(X_train_global[X_train_global["label_b"]>0]["jet_pt"], bins = bins_pt_weights) 
-    counts_uds, edges_uds = np.histogram(X_train_global[X_train_global["label_uds"]>0]["jet_pt"], bins = bins_pt_weights) 
-    counts_g, edges_g = np.histogram(X_train_global[X_train_global["label_g"]>0]["jet_pt"], bins = bins_pt_weights) 
-    counts_c, edges_c = np.histogram(X_train_global[X_train_global["label_c"]>0]["jet_pt"], bins = bins_pt_weights) 
-    counts_tau, edges_tau = np.histogram(X_train_global[X_train_global["label_tau"]>0]["jet_pt"], bins = bins_pt_weights) 
-    # counts_b, edges_b, edges_b2 = np.histogram2d(X_train_global[X_train_global["label_b"]>0]["jet_pt"],X_train_global[X_train_global["label_b"]>0]["jet_eta"], bins = (bins_pt_weights, bins_eta_weights)) 
-    # counts_uds, edges_uds, edges_uds2 = np.histogram2d(X_train_global[X_train_global["label_uds"]>0]["jet_pt"],X_train_global[X_train_global["label_uds"]>0]["jet_eta"], bins = (bins_pt_weights, bins_eta_weights)) 
-    # counts_g, edges_g, edges_g2 = np.histogram2d(X_train_global[X_train_global["label_g"]>0]["jet_pt"],X_train_global[X_train_global["label_g"]>0]["jet_eta"], bins = (bins_pt_weights, bins_eta_weights)) 
-    # counts_c, edges_c, edges_c2 = np.histogram2d(X_train_global[X_train_global["label_c"]>0]["jet_pt"],X_train_global[X_train_global["label_c"]>0]["jet_eta"], bins = (bins_pt_weights, bins_eta_weights)) 
-    # counts_tau, edges_tau, edges_tau2 = np.histogram2d(X_train_global[X_train_global["label_tau"]>0]["jet_pt"],X_train_global[X_train_global["label_tau"]>0]["jet_eta"], bins = (bins_pt_weights, bins_eta_weights)) 
+    counts_b, edges_b = np.histogram(X_train_global[X_train_global["label_b"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
+    counts_uds, edges_uds = np.histogram(X_train_global[X_train_global["label_uds"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
+    counts_g, edges_g = np.histogram(X_train_global[X_train_global["label_g"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
+    counts_c, edges_c = np.histogram(X_train_global[X_train_global["label_c"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
+    counts_tau, edges_tau = np.histogram(X_train_global[X_train_global["label_tau"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
+    # counts_b, edges_b, edges_b2 = np.histogram2d(X_train_global[X_train_global["label_b"]>0]["jet_pt_phys"],X_train_global[X_train_global["label_b"]>0]["jet_eta_phys"], bins = (bins_pt_weights, bins_eta_weights)) 
+    # counts_uds, edges_uds, edges_uds2 = np.histogram2d(X_train_global[X_train_global["label_uds"]>0]["jet_pt_phys"],X_train_global[X_train_global["label_uds"]>0]["jet_eta_phys"], bins = (bins_pt_weights, bins_eta_weights)) 
+    # counts_g, edges_g, edges_g2 = np.histogram2d(X_train_global[X_train_global["label_g"]>0]["jet_pt_phys"],X_train_global[X_train_global["label_g"]>0]["jet_eta_phys"], bins = (bins_pt_weights, bins_eta_weights)) 
+    # counts_c, edges_c, edges_c2 = np.histogram2d(X_train_global[X_train_global["label_c"]>0]["jet_pt_phys"],X_train_global[X_train_global["label_c"]>0]["jet_eta_phys"], bins = (bins_pt_weights, bins_eta_weights)) 
+    # counts_tau, edges_tau, edges_tau2 = np.histogram2d(X_train_global[X_train_global["label_tau"]>0]["jet_pt_phys"],X_train_global[X_train_global["label_tau"]>0]["jet_eta_phys"], bins = (bins_pt_weights, bins_eta_weights)) 
 
     print(counts_b, counts_uds, counts_g, counts_c, counts_tau)
 
@@ -319,7 +363,7 @@ def doTraining(
     w_c =  np.nan_to_num(counts_b/counts_c * class_weights[3], nan = 1., posinf = 1., neginf = 1.)
     w_tau =  np.nan_to_num(counts_b/counts_tau * class_weights[4], nan = 1., posinf = 1., neginf = 1.)
 
-    # pt_binidx = np.digitize(X_train_global["jet_pt"], bins_pt_weights)-1
+    # pt_binidx = np.digitize(X_train_global["jet_pt_phys"], bins_pt_weights)-1
     # pt_onehot = to_categorical(pt_binidx)
 
     # w_pt_b = np.sum(pt_onehot*w_b, axis=-1)
@@ -328,7 +372,7 @@ def doTraining(
     # w_pt_c = np.sum(pt_onehot*w_c, axis=-1)
     # w_pt_tau = np.sum(pt_onehot*w_tau, axis=-1)
 
-    X_train_global["weight_jetpT_binidx"] = to_categorical( np.digitize(X_train_global["jet_pt"], bins_pt_weights)-1)
+    X_train_global["weight_jetpT_binidx"] = to_categorical( np.digitize(X_train_global["jet_pt_phys"], bins_pt_weights)-1)
 
     X_train_global["weight_pt"] = (X_train_global["label_b"]*ak.sum(w_b*X_train_global["weight_jetpT_binidx"], axis =-1) + X_train_global["label_uds"]*ak.sum(w_uds*X_train_global["weight_jetpT_binidx"], axis =-1) + X_train_global["label_g"]*ak.sum(w_g*X_train_global["weight_jetpT_binidx"], axis =-1) + X_train_global["label_c"]*ak.sum(w_c*X_train_global["weight_jetpT_binidx"], axis =-1) + X_train_global["label_tau"]*ak.sum(w_tau*X_train_global["weight_jetpT_binidx"], axis =-1))
 
@@ -364,10 +408,10 @@ def doTraining(
     # Define the optimizer ( minimization algorithm )
     if nnConfig["optimizer"] == "adam":
         optim = Adam(learning_rate = nnConfig["learning_rate"])
-    elif nnConfig["optimizer"] == "ranger":
-        radam = tfa.optimizers.RectifiedAdam(learning_rate = nnConfig["learning_rate"])
-        ranger = tfa.optimizers.Lookahead(radam, sync_period=6, slow_step_size=0.5)
-        optim = ranger
+    # elif nnConfig["optimizer"] == "ranger":
+    #     radam = tfa.optimizers.RectifiedAdam(learning_rate = nnConfig["learning_rate"])
+    #     ranger = tfa.optimizers.Lookahead(radam, sync_period=6, slow_step_size=0.5)
+    #     optim = ranger
 
     if nnConfig["regression"] == True:
         # model.compile(optimizer = optim, loss = ['categorical_crossentropy', 'mean_squared_error'],
@@ -681,15 +725,16 @@ def doTraining(
             y_gluon_predict_reg = y_gluon_predict[1]
             y_gluon_predict = y_gluon_predict[0]
 
+
     X = np.linspace(0.0, 1.0, 100)
-    histo = plt.hist(y_b_predict[:,0], bins=X, label='b' ,histtype='step', density = True)
+    histo = plt.hist(y_b_predict[:,0], bins=X, label='b' ,histtype='step', density = True, color="blue")
     if splitTau:
-        histo = plt.hist(y_tau_predict[:,0], bins=X, label='Tau' ,histtype='step', density = True)
-    histo = plt.hist(y_bkg_predict[:,0], bins=X, label='uds' ,histtype='step', density = True)
+        histo = plt.hist(y_tau_predict[:,0], bins=X, label='Tau' ,histtype='step', density = True, color="red")
+    histo = plt.hist(y_bkg_predict[:,0], bins=X, label='uds' ,histtype='step', density = True, color="orange")
     if splitGluon:
-        histo = plt.hist(y_gluon_predict[:,0], bins=X, label='Gluon' ,histtype='step', density = True)
+        histo = plt.hist(y_gluon_predict[:,0], bins=X, label='Gluon' ,histtype='step', density = True, color="green")
     if splitCharm:
-        histo = plt.hist(y_charm_predict[:,0], bins=X, label='Charm' ,histtype='step', density = True)
+        histo = plt.hist(y_charm_predict[:,0], bins=X, label='Charm' ,histtype='step', density = True, color="black")
     plt.xlabel('uds score')
     plt.legend(prop={'size': 10})
     plt.legend(loc='upper right')
@@ -699,14 +744,14 @@ def doTraining(
     plt.cla()
 
     X = np.linspace(0.0, 1.0, 100)
-    histo = plt.hist(y_b_predict[:,1], bins=X, label='b ' ,histtype='step', density = True)
+    histo = plt.hist(y_b_predict[:,1], bins=X, label='b ' ,histtype='step', density = True, color="blue")
     if splitTau:
-        histo = plt.hist(y_tau_predict[:,1], bins=X, label='Tau' ,histtype='step', density = True)
-    histo = plt.hist(y_bkg_predict[:,1], bins=X, label='uds' ,histtype='step', density = True)
+        histo = plt.hist(y_tau_predict[:,1], bins=X, label='Tau' ,histtype='step', density = True, color="red")
+    histo = plt.hist(y_bkg_predict[:,1], bins=X, label='uds' ,histtype='step', density = True, color="orange")
     if splitGluon:
-        histo = plt.hist(y_gluon_predict[:,1], bins=X, label='Gluon' ,histtype='step', density = True)
+        histo = plt.hist(y_gluon_predict[:,1], bins=X, label='Gluon' ,histtype='step', density = True, color="green")
     if splitCharm:
-        histo = plt.hist(y_charm_predict[:,1], bins=X, label='Charm' ,histtype='step', density = True)
+        histo = plt.hist(y_charm_predict[:,1], bins=X, label='Charm' ,histtype='step', density = True, color="black")
     plt.xlabel('b score')
     plt.legend(prop={'size': 10})
     plt.legend(loc='upper right')
@@ -717,14 +762,14 @@ def doTraining(
 
     if splitTau:
         X = np.linspace(0.0, 1.0, 100)
-        histo = plt.hist(y_b_predict[:,2], bins=X, label='b' ,histtype='step', density = True)
+        histo = plt.hist(y_b_predict[:,2], bins=X, label='b' ,histtype='step', density = True, color="blue")
         if splitTau:
-            histo = plt.hist(y_tau_predict[:,2], bins=X, label='Tau' ,histtype='step', density = True)
-        histo = plt.hist(y_bkg_predict[:,2], bins=X, label='uds' ,histtype='step', density = True)
+            histo = plt.hist(y_tau_predict[:,2], bins=X, label='Tau' ,histtype='step', density = True, color="red")
+        histo = plt.hist(y_bkg_predict[:,2], bins=X, label='uds' ,histtype='step', density = True, color="orange")
         if splitGluon:
-            histo = plt.hist(y_gluon_predict[:,2], bins=X, label='Gluon' ,histtype='step', density = True)
+            histo = plt.hist(y_gluon_predict[:,2], bins=X, label='Gluon' ,histtype='step', density = True, color="green")
         if splitCharm:
-            histo = plt.hist(y_charm_predict[:,2], bins=X, label='Charm' ,histtype='step', density = True)
+            histo = plt.hist(y_charm_predict[:,2], bins=X, label='Charm' ,histtype='step', density = True, color="black")
         plt.xlabel('tau score')
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
@@ -735,14 +780,14 @@ def doTraining(
 
     if splitGluon:
         X = np.linspace(0.0, 1.0, 100)
-        histo = plt.hist(y_b_predict[:,3], bins=X, label='b' ,histtype='step', density = True)
+        histo = plt.hist(y_b_predict[:,3], bins=X, label='b' ,histtype='step', density = True, color="blue")
         if splitTau:
-            histo = plt.hist(y_tau_predict[:,3], bins=X, label='Tau' ,histtype='step', density = True)
-        histo = plt.hist(y_bkg_predict[:,3], bins=X, label='uds' ,histtype='step', density = True)
+            histo = plt.hist(y_tau_predict[:,3], bins=X, label='Tau' ,histtype='step', density = True, color="red")
+        histo = plt.hist(y_bkg_predict[:,3], bins=X, label='uds' ,histtype='step', density = True, color="orange")
         if splitGluon:
-            histo = plt.hist(y_gluon_predict[:,3], bins=X, label='Gluon' ,histtype='step', density = True)
+            histo = plt.hist(y_gluon_predict[:,3], bins=X, label='Gluon' ,histtype='step', density = True, color="green")
         if splitCharm:
-            histo = plt.hist(y_charm_predict[:,3], bins=X, label='Charm' ,histtype='step', density = True)
+            histo = plt.hist(y_charm_predict[:,3], bins=X, label='Charm' ,histtype='step', density = True, color="black")
         #plt.semilogy()
         plt.xlabel('gluon score')
         plt.legend(prop={'size': 10})
@@ -754,14 +799,14 @@ def doTraining(
 
     if splitCharm:
         X = np.linspace(0.0, 1.0, 100)
-        histo = plt.hist(y_b_predict[:,4], bins=X, label='b' ,histtype='step', density = True)
+        histo = plt.hist(y_b_predict[:,4], bins=X, label='b' ,histtype='step', density = True, color="blue")
         if splitTau:
-            histo = plt.hist(y_tau_predict[:,4], bins=X, label='Tau' ,histtype='step', density = True)
-        histo = plt.hist(y_bkg_predict[:,4], bins=X, label='uds' ,histtype='step', density = True)
+            histo = plt.hist(y_tau_predict[:,4], bins=X, label='Tau' ,histtype='step', density = True, color="red")
+        histo = plt.hist(y_bkg_predict[:,4], bins=X, label='uds' ,histtype='step', density = True, color="orange")
         if splitGluon:
-            histo = plt.hist(y_gluon_predict[:,4], bins=X, label='Gluon' ,histtype='step', density = True)
+            histo = plt.hist(y_gluon_predict[:,4], bins=X, label='Gluon' ,histtype='step', density = True, color="green")
         if splitGluon:
-            histo = plt.hist(y_charm_predict[:,4], bins=X, label='Charm' ,histtype='step', density = True)
+            histo = plt.hist(y_charm_predict[:,4], bins=X, label='Charm' ,histtype='step', density = True, color="black")
         #plt.semilogy()
         plt.xlabel('charm score')
         plt.legend(prop={'size': 10})
@@ -774,9 +819,9 @@ def doTraining(
     if nnConfig["regression"]:
         # a quick response plot before and after...
         X_test_global["jet_pt_reg"] = Y_predict_reg[:,0]
-        X_test_global["jet_pt_cor_reg"] = X_test_global["jet_pt"] * X_test_global["jet_pt_reg"]
-        mean_uncor = np.mean(np.array(X_test_global["jet_pt"] / X_test_global["jet_genmatch_pt"]))
-        std_uncor = rms(X_test_global["jet_pt"] / X_test_global["jet_genmatch_pt"])
+        X_test_global["jet_pt_cor_reg"] = X_test_global["jet_pt_phys"] * X_test_global["jet_pt_reg"]
+        mean_uncor = np.mean(np.array(X_test_global["jet_pt_phys"] / X_test_global["jet_genmatch_pt"]))
+        std_uncor = rms(X_test_global["jet_pt_phys"] / X_test_global["jet_genmatch_pt"])
         mean_cor = np.mean(X_test_global["jet_pt_corr"] / X_test_global["jet_genmatch_pt"])
         std_cor = rms(X_test_global["jet_pt_corr"] / X_test_global["jet_genmatch_pt"])
         mean_reg = np.mean(X_test_global["jet_pt_cor_reg"] / X_test_global["jet_genmatch_pt"])
@@ -785,9 +830,9 @@ def doTraining(
         print("cor", mean_cor, std_cor)
         print("reg", mean_reg, std_reg)
         X = np.linspace(0.0, 2.0, 100)
-        histo = plt.hist(X_test_global["jet_pt"] / X_test_global["jet_genmatch_pt"], bins=X, label='Uncorrected' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global["jet_pt_corr"] / X_test_global["jet_genmatch_pt"], bins=X, label='JEC LOT' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global["jet_pt_cor_reg"] / X_test_global["jet_genmatch_pt"], bins=X, label='Regression' ,histtype='step', density=True)
+        histo = plt.hist(X_test_global["jet_pt_phys"] / X_test_global["jet_genmatch_pt"], bins=X, label='Uncorrected' ,histtype='step', density=True, color = '#1f77b4')
+        histo = plt.hist(X_test_global["jet_pt_corr"] / X_test_global["jet_genmatch_pt"], bins=X, label='JEC LOT' ,histtype='step', density=True, color = '#ff7f0e')
+        histo = plt.hist(X_test_global["jet_pt_cor_reg"] / X_test_global["jet_genmatch_pt"], bins=X, label='Regression' ,histtype='step', density=True, color = '#2ca02c')
         plt.xlabel('Jet response (reco/gen)')
         plt.ylabel('Jets')
         plt.xlim(0.,2.)
@@ -852,6 +897,7 @@ if __name__ == "__main__":
     parser.add_argument('--regression', dest = 'regression', default = False, action='store_true')
     parser.add_argument('--pruning', dest = 'pruning', default = False, action='store_true')
     parser.add_argument('--inputQuant', dest = 'inputQuant', default = False, action='store_true')
+    parser.add_argument('--test', dest = 'test', default = False, action='store_true')
     parser.add_argument('--nbits', dest = 'nbits', default = 8)
     parser.add_argument('--integ', dest = 'integ', default = 0)
     parser.add_argument('--nNodes', dest = 'nNodes', default = 15)
@@ -909,5 +955,6 @@ if __name__ == "__main__":
         nnConfig,
         args.save,
         args.strstamp,
+        args.test,
         args.workdir,
         )

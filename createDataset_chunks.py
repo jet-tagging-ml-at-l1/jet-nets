@@ -23,10 +23,8 @@ def createDataset(filetag, flavs, not_reduce):
     print ("Use the following outfolder", outFolder)
 
     # Transform into Awkward arrays and filter its contents
-    # filter = "/(jet)_(eta|phi|pt|pt_log|pt_raw|mass|energy|px|py|pz|bjetscore|tauscore|pt_corr|tauflav|muflav|elflav|taudecaymode|lepflav|taucharge|genmatch_pt|genmatch_eta|genmatch_phi|genmatch_mass|genmatch_hflav|genmatch_lep_vis_pt|genmatch_lep_pt|genmatch_pflav|npfcand|pfcand_pt|pfcand_pt_rel|pfcand_pt_rel_log|pfcand_px|pfcand_py|pfcand_pz|pfcand_pt_log|pfcand_eta|pfcand_phi|pfcand_mass|pfcand_energy|pfcand_energy_log|pfcand_puppiweight|pfcand_z0|pfcand_dxy|pfcand_dxy_custom|pfcand_id|pfcand_charge|pfcand_pperp_ratio|pfcand_ppara_ratio|pfcand_deta|pfcand_dphi|pfcand_etarel|pfcand_track_chi2|pfcand_track_chi2norm|pfcand_track_qual|pfcand_track_npar|pfcand_track_nstubs|pfcand_track_vx|pfcand_track_vy|pfcand_track_vz|pfcand_track_pterror|pfcand_cluster_hovere|pfcand_cluster_sigmarr|pfcand_cluster_abszbarycenter|pfcand_cluster_emet|pfcand_cluster_egvspion|pfcand_cluster_egvspu)/"
-    filter = "/(jet)_(eta|phi|pt|pt_log|pt_raw|bjetscore|tauscore|pt_corr|tauflav|muflav|elflav|taudecaymode|lepflav|taucharge|genmatch_pt|genmatch_eta|genmatch_phi|genmatch_mass|genmatch_hflav|genmatch_lep_vis_pt|genmatch_lep_pt|genmatch_pflav|npfcand|pfcand_pt|pfcand_pt_rel|pfcand_pt_rel_log|pfcand_pt_log|pfcand_eta|pfcand_phi|pfcand_puppiweight|pfcand_z0|pfcand_dxy|pfcand_dxy_custom|pfcand_id|pfcand_charge|pfcand_pperp_ratio|pfcand_ppara_ratio|pfcand_deta|pfcand_dphi|pfcand_etarel|pfcand_track_chi2|pfcand_track_chi2norm|pfcand_track_qual|pfcand_track_npar|pfcand_track_nstubs|pfcand_track_vx|pfcand_track_vy|pfcand_track_vz|pfcand_track_pterror|pfcand_cluster_hovere|pfcand_cluster_sigmarr|pfcand_cluster_abszbarycenter|pfcand_cluster_emet|pfcand_cluster_egvspion|pfcand_cluster_egvspu)/"
-    # filter_global = "/(jet)_(eta|phi|pt|pt_log|pt_raw|mass|energy|bjetscore|tauscore|pt_corr)/"
-    #filter ="jet_*"
+    # filter = "/(jet)_(eta|phi|pt|pt_log|pt_raw|bjetscore|tauscore|pt_corr|tauflav|muflav|elflav|taudecaymode|lepflav|taucharge|genmatch_pt|genmatch_eta|genmatch_phi|genmatch_mass|genmatch_hflav|genmatch_lep_vis_pt|genmatch_lep_pt|genmatch_pflav|npfcand|pfcand_pt|pfcand_pt_rel|pfcand_pt_rel_log|pfcand_pt_log|pfcand_eta|pfcand_phi|pfcand_puppiweight|pfcand_z0|pfcand_dxy|pfcand_dxy_custom|pfcand_id|pfcand_charge|pfcand_pperp_ratio|pfcand_ppara_ratio|pfcand_deta|pfcand_dphi|pfcand_etarel|pfcand_track_chi2|pfcand_track_chi2norm|pfcand_track_qual|pfcand_track_npar|pfcand_track_nstubs|pfcand_track_vx|pfcand_track_vy|pfcand_track_vz|pfcand_track_pterror|pfcand_cluster_hovere|pfcand_cluster_sigmarr|pfcand_cluster_abszbarycenter|pfcand_cluster_emet|pfcand_cluster_egvspion|pfcand_cluster_egvspu)/"
+    filter = "/(jet)_(eta|eta_phys|phi|phi_phys|pt|pt_phys|pt_raw|bjetscore|tauscore|pt_corr|tauflav|muflav|elflav|taudecaymode|lepflav|taucharge|genmatch_pt|genmatch_eta|genmatch_phi|genmatch_mass|genmatch_hflav|genmatch_lep_vis_pt|genmatch_lep_pt|genmatch_pflav|npfcand|pfcand_pt|pfcand_pt_rel|pfcand_pt_rel_log|pfcand_pt_log|pfcand_eta|pfcand_phi|pfcand_puppiweight|jet_pfcand_emid|jet_pfcand_quality|jet_pfcand_tkquality||pfcand_z0|pfcand_dxy|pfcand_dxy_custom|pfcand_id|pfcand_charge|pfcand_pperp_ratio|pfcand_ppara_ratio|pfcand_deta|pfcand_dphi|pfcand_etarel|jet_pfcand_track_valid|jet_pfcand_track_rinv|jet_pfcand_track_phizero|jet_pfcand_track_tanl|jet_pfcand_track_z0|jet_pfcand_track_d0|jet_pfcand_track_chi2rphi|jet_pfcand_track_chi2rz|jet_pfcand_track_bendchi2|jet_pfcand_track_hitpattern|jet_pfcand_track_mvaquality|jet_pfcand_track_mvaother|pfcand_track_chi2|pfcand_track_chi2norm|pfcand_track_qual|pfcand_track_npar|pfcand_track_nstubs|pfcand_track_vx|pfcand_track_vy|pfcand_track_vz|pfcand_track_pterror|pfcand_cluster_hovere|pfcand_cluster_sigmarr|pfcand_cluster_abszbarycenter|pfcand_cluster_emet|pfcand_cluster_egvspion|pfcand_cluster_egvspu)/"
 
     nconstit = 16
 
@@ -39,12 +37,19 @@ def createDataset(filetag, flavs, not_reduce):
         # data = f["jetntuple/Jets"].arrays(filter_name = filter, how = "zip")
         # if applyBaseCut:
         # jet_ptmin =   (data['jet_pt'] > 15.) & (np.abs(data['jet_eta']) < 2.4)
-        jet_ptmin =   (data['jet_pt'] > 15.) & (np.abs(data['jet_eta']) < 2.4) & (data['jet_genmatch_pt'] > 0.)
+        print (len(data))
+        print (data['jet_pt_phys'])
+        print (data['jet_eta_phys'])
+        print (data['jet_genmatch_pt'])
+        # jet_ptmin =   (data['jet_pt'] > 15.) & (np.abs(data['jet_eta']) < 2.4) & (data['jet_genmatch_pt'] > 0.)
+        jet_ptmin =   (data['jet_pt_phys'] > 15.) & (np.abs(data['jet_eta_phys']) < 2.4) & (data['jet_genmatch_pt'] > 0.)
+        # jet_ptmin =   (data['jet_pt'] > 15.) & (data['jet_genmatch_pt'] > 0.)
+        # jet_ptmin =   (data['jet_pt_phys'] > 15.) & (data['jet_genmatch_pt'] > 0.)
         data = data[jet_ptmin]
 
         # data = readDataFromFile(fname, filter = filter, applyBaseCut = True)
 
-        # print (data)
+        print (len(data))
 
         addResponseVars(data)
 
@@ -204,20 +209,52 @@ def createDataset(filetag, flavs, not_reduce):
         # plt.cla()
 
         # All PF candidate properties
-        pfcand_fields_all = ['puppiweight','pt_rel','pt_rel_log',
-                            'z0','dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
-                            'track_chi2norm','track_qual','track_npar','track_nstubs','track_vx','track_vy','track_vz','track_pterror',
-                            'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-                            # 'cluster_egvspion','cluster_egvspu'
-                            # 'pt_log','px','py','pz','eta','phi','mass','energy_log',
-                            'pt_log','eta','phi',
-                            ]
+        # pfcand_fields_all = [
+        #     'puppiweight','pt_rel','pt_rel_log',
+        #     'z0','dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+        #     'track_chi2norm','track_qual','track_npar','track_nstubs','track_vx','track_vy','track_vz','track_pterror',
+        #     'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+        #     'pt_log','eta','phi',
+        #     ]
+        pfcand_fields_all = [
+            'puppiweight','pt_rel','pt_rel_log',
+            'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+            'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
+            'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+            'pt_log','eta','phi',
+
+            'emid','quality','tkquality',
+            'track_valid','track_rinv',
+            'track_phizero','track_tanl','track_z0','z0',
+            'track_d0','track_chi2rphi','track_chi2rz',
+            'track_bendchi2','track_hitpattern','track_nstubs',
+            # 'track_mvaquality',
+            'track_mvaother',
+
+            ]
         # A slightly reduced set
-        pfcand_fields_baseline = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"]
-        pfcand_fields_ext1 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-                    'puppiweight','dxy_custom','etarel','pperp_ratio','ppara_ratio']
-        pfcand_fields_ext2 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-                    'pt_log','eta','phi',]
+        pfcand_fields_baseline = [
+            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"
+            ]
+        # a custom set
+        pfcand_fields_ext1 = [
+            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+            'puppiweight',
+
+            ]
+        # let's take all HW values
+        pfcand_fields_ext2 = [
+            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+            'pt_log','eta','phi',
+
+            'emid','quality','tkquality',
+            'track_valid','track_rinv',
+            'track_phizero','track_tanl','track_z0','z0',
+            'track_d0','track_chi2rphi','track_chi2rz',
+            'track_bendchi2','track_hitpattern','track_nstubs',
+            # 'track_mvaquality',
+            'track_mvaother',
+            ]
 
         # Create Datasets for plotting
         classes_plotting, var_names_all, x_all, y_all, x_global, y_target = createAndSaveTrainingData(data_split, pfcand_fields_all)

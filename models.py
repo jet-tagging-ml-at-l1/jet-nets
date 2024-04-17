@@ -10,7 +10,7 @@ from tensorflow.keras.layers import Layer
 from qkeras import *
 import tensorflow.keras.layers as KL
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau, TensorBoard
-import tensorflow_addons as tfa
+# import tensorflow_addons as tfa
 from tensorflow import math, matmul, reshape, shape, transpose, cast, float32
 from tensorflow.keras.layers import Dense, Layer
 
@@ -66,11 +66,13 @@ class AAtt(keras.layers.Layer):
         q = tf.reshape(q, shape = shape_)
         q = tf.transpose(q, perm = perm_)
 
-        k = self.qD(input)
+        # k = self.qD(input)
+        k = self.kD(input)
         k = tf.reshape(k, shape = shape_)
         k = tf.transpose(k, perm = perm_)
 
-        v = self.qD(input)
+        # v = self.qD(input)
+        v = self.vD(input)
         v = tf.reshape(v, shape = shape_)
         v = tf.transpose(v, perm = perm_)
 
@@ -344,7 +346,8 @@ def getDeepSet(nclasses, input_shape, nnodes_phi = 16, nnodes_rho = 16, nbits = 
     inp = Input(shape = input_shape, name = "inputs")
 
     # Input point features BatchNormalization 
-    h = QBatchNormalization(name='qBatchnorm', beta_quantizer=qbits, gamma_quantizer=qbits)(inp)
+    # h = QBatchNormalization(name='qBatchnorm', beta_quantizer=qbits, gamma_quantizer=qbits)(inp)
+    h = QBatchNormalization(name='qBatchnorm', beta_quantizer=qbits, gamma_quantizer=qbits, mean_quantizer=qbits, variance_quantizer=qbits)(inp)
     # Phi MLP ( permutation equivariant layers )
     h = QDense(nnodes_phi, name='qDense_phi1', **dense_kwargs)(h)
     h = QActivation(qact,name='qActivation_phi1')(h)
@@ -360,6 +363,7 @@ def getDeepSet(nclasses, input_shape, nnodes_phi = 16, nnodes_rho = 16, nbits = 
 
     # Aggregate features (taking mean) over set elements  
     mean = GlobalAveragePooling1D(name='avgpool')(phi_out)      # return mean of features over elements
+    # mean = GlobalAveragePooling1D(name='avgpool', keepdims=False)(phi_out)      # return mean of features over elements
 
     # Rho MLP
     h = QDense(nnodes_rho, name='qDense_rho1', **dense_kwargs)(mean)

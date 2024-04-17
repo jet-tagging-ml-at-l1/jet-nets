@@ -65,20 +65,60 @@ def rms(array):
    return np.sqrt(np.mean(array ** 2))
 
 # All PF candidate properties
-pfcand_fields_all = ['puppiweight','pt_rel','pt_rel_log',
-                    'z0','dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
-                    'track_chi2norm','track_qual','track_npar','track_nstubs','track_vx','track_vy','track_vz','track_pterror',
-                    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-                    # 'cluster_egvspion','cluster_egvspu'
-                    # 'pt_log','px','py','pz','eta','phi','mass','energy_log',
-                    'pt_log','eta','phi',
-                    ]
-# A slightly reduced set
-pfcand_fields_baseline = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"]
-pfcand_fields_ext1 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'puppiweight','dxy_custom','etarel','pperp_ratio','ppara_ratio']
-pfcand_fields_ext2 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'pt_log','eta','phi',]
+# pfcand_fields_all = ['puppiweight','pt_rel','pt_rel_log',
+#                     'z0','dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+#                     'track_chi2norm','track_qual','track_npar','track_nstubs','track_vx','track_vy','track_vz','track_pterror',
+#                     'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+#                     # 'cluster_egvspion','cluster_egvspu'
+#                     # 'pt_log','px','py','pz','eta','phi','mass','energy_log',
+#                     'pt_log','eta','phi',
+#                     ]
+# # A slightly reduced set
+# pfcand_fields_baseline = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"]
+# pfcand_fields_ext1 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+#             'puppiweight','dxy_custom','etarel','pperp_ratio','ppara_ratio']
+# pfcand_fields_ext2 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+#             'pt_log','eta','phi',]
+
+pfcand_fields_all = [
+            'puppiweight','pt_rel','pt_rel_log',
+            'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+            'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
+            'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+            'pt_log','eta','phi',
+
+            'emid','quality','tkquality',
+            'track_valid','track_rinv',
+            'track_phizero','track_tanl','track_z0','z0',
+            'track_d0','track_chi2rphi','track_chi2rz',
+            'track_bendchi2','track_hitpattern','track_nstubs',
+            # 'track_mvaquality',
+            'track_mvaother',
+
+            ]
+        # A slightly reduced set
+pfcand_fields_baseline = [
+            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"
+            ]
+        # a custom set
+pfcand_fields_ext1 = [
+            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+            'puppiweight',
+
+            ]
+        # let's take all HW values
+pfcand_fields_ext2 = [
+            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+            'pt_log','eta','phi',
+
+            'emid','quality','tkquality',
+            'track_valid','track_rinv',
+            'track_phizero','track_tanl','track_z0','z0',
+            'track_d0','track_chi2rphi','track_chi2rz',
+            'track_bendchi2','track_hitpattern','track_nstubs',
+            # 'track_mvaquality',
+            'track_mvaother',
+            ]
 
 
 modelnamesDict = {
@@ -131,7 +171,7 @@ def doPlots(
     # chunksmatching = chunksmatching[:3]
 
     # filter = "/(jet)_(eta|phi|pt|pt_raw|mass|energy|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
-    filter = "/(jet)_(eta|phi|pt|pt_raw|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
+    filter = "/(jet)_(eta|eta_phys|phi|pt|pt_phys|pt_raw|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
 
     print ("Loading data in all",len(chunksmatching),"chunks.")
 
@@ -297,7 +337,7 @@ def doPlots(
 
     if regression:
         X_test_global["jet_pt_reg"] = modelsAndNames["Y_predict_reg"][:,0]
-        X_test_global["jet_pt_cor_reg"] = X_test_global["jet_pt"] * X_test_global["jet_pt_reg"]
+        X_test_global["jet_pt_cor_reg"] = X_test_global["jet_pt_phys"] * X_test_global["jet_pt_reg"]
 
     X_test_global["b_vs_uds"] = X_test_global["out_b"]/(X_test_global["out_b"] + X_test_global["out_bkg"])
     X_test_global["b_vs_udsg"] = X_test_global["out_b"]/(X_test_global["out_b"] + X_test_global["out_bkg"] + X_test_global["out_gluon"])
@@ -801,15 +841,15 @@ def doPlots(
     data_["wp2_ref"] = data_["jet_bjetscore"] > wp_b_medium_ref
     data_["wp3_ref"] = data_["jet_bjetscore"] > wp_b_tight_ref
 
-    h_wp1 = Hist(split("jet_pt", x_bins_pt), cut("wp1"))
-    h_wp2 = Hist(split("jet_pt", x_bins_pt), cut("wp2"))
-    h_wp3 = Hist(split("jet_pt", x_bins_pt), cut("wp3"))
+    h_wp1 = Hist(split("jet_pt_phys", x_bins_pt), cut("wp1"))
+    h_wp2 = Hist(split("jet_pt_phys", x_bins_pt), cut("wp2"))
+    h_wp3 = Hist(split("jet_pt_phys", x_bins_pt), cut("wp3"))
     h_wp1.fill(data_)
     h_wp2.fill(data_)
     h_wp3.fill(data_)
-    h_wp1_ref = Hist(split("jet_pt", x_bins_pt), cut("wp1_ref"))
-    h_wp2_ref = Hist(split("jet_pt", x_bins_pt), cut("wp2_ref"))
-    h_wp3_ref = Hist(split("jet_pt", x_bins_pt), cut("wp3_ref"))
+    h_wp1_ref = Hist(split("jet_pt_phys", x_bins_pt), cut("wp1_ref"))
+    h_wp2_ref = Hist(split("jet_pt_phys", x_bins_pt), cut("wp2_ref"))
+    h_wp3_ref = Hist(split("jet_pt_phys", x_bins_pt), cut("wp3_ref"))
     h_wp1_ref.fill(data_)
     h_wp2_ref.fill(data_)
     h_wp3_ref.fill(data_)
@@ -850,15 +890,15 @@ def doPlots(
     # efficiency vs eta
     x_bins_eta = np.array([-2.5, -2., -1.5 ,-1., -0.5, 0., 0.5, 1., 1.5, 2., 2.5])
 
-    h_wp1_eta = Hist(split("jet_eta", x_bins_eta), cut("wp1"))
-    h_wp2_eta = Hist(split("jet_eta", x_bins_eta), cut("wp2"))
-    h_wp3_eta = Hist(split("jet_eta", x_bins_eta), cut("wp3"))
+    h_wp1_eta = Hist(split("jet_eta_phys", x_bins_eta), cut("wp1"))
+    h_wp2_eta = Hist(split("jet_eta_phys", x_bins_eta), cut("wp2"))
+    h_wp3_eta = Hist(split("jet_eta_phys", x_bins_eta), cut("wp3"))
     h_wp1_eta.fill(data_)
     h_wp2_eta.fill(data_)
     h_wp3_eta.fill(data_)
-    h_wp1_eta_ref = Hist(split("jet_eta", x_bins_eta), cut("wp1_ref"))
-    h_wp2_eta_ref = Hist(split("jet_eta", x_bins_eta), cut("wp2_ref"))
-    h_wp3_eta_ref = Hist(split("jet_eta", x_bins_eta), cut("wp3_ref"))
+    h_wp1_eta_ref = Hist(split("jet_eta_phys", x_bins_eta), cut("wp1_ref"))
+    h_wp2_eta_ref = Hist(split("jet_eta_phys", x_bins_eta), cut("wp2_ref"))
+    h_wp3_eta_ref = Hist(split("jet_eta_phys", x_bins_eta), cut("wp3_ref"))
     h_wp1_eta_ref.fill(data_)
     h_wp2_eta_ref.fill(data_)
     h_wp3_eta_ref.fill(data_)
@@ -908,15 +948,15 @@ def doPlots(
     data_["wp2_ref"] = data_["jet_tauscore"] > wp_tau_medium_ref
     data_["wp3_ref"] = data_["jet_tauscore"] > wp_tau_tight_ref
 
-    h_wp1 = Hist(split("jet_pt", x_bins_pt), cut("wp1"))
-    h_wp2 = Hist(split("jet_pt", x_bins_pt), cut("wp2"))
-    h_wp3 = Hist(split("jet_pt", x_bins_pt), cut("wp3"))
+    h_wp1 = Hist(split("jet_pt_phys", x_bins_pt), cut("wp1"))
+    h_wp2 = Hist(split("jet_pt_phys", x_bins_pt), cut("wp2"))
+    h_wp3 = Hist(split("jet_pt_phys", x_bins_pt), cut("wp3"))
     h_wp1.fill(data_)
     h_wp2.fill(data_)
     h_wp3.fill(data_)
-    h_wp1_ref = Hist(split("jet_pt", x_bins_pt), cut("wp1_ref"))
-    h_wp2_ref = Hist(split("jet_pt", x_bins_pt), cut("wp2_ref"))
-    h_wp3_ref = Hist(split("jet_pt", x_bins_pt), cut("wp3_ref"))
+    h_wp1_ref = Hist(split("jet_pt_phys", x_bins_pt), cut("wp1_ref"))
+    h_wp2_ref = Hist(split("jet_pt_phys", x_bins_pt), cut("wp2_ref"))
+    h_wp3_ref = Hist(split("jet_pt_phys", x_bins_pt), cut("wp3_ref"))
     h_wp1_ref.fill(data_)
     h_wp2_ref.fill(data_)
     h_wp3_ref.fill(data_)
@@ -957,15 +997,15 @@ def doPlots(
     # efficiency vs eta
     # x_bins_eta = np.array([-2.5, -2., -1.5 ,-1., -0.5, 0., 0.5, 1., 1.5, 2., 2.5])
 
-    h_wp1_eta = Hist(split("jet_eta", x_bins_eta), cut("wp1"))
-    h_wp2_eta = Hist(split("jet_eta", x_bins_eta), cut("wp2"))
-    h_wp3_eta = Hist(split("jet_eta", x_bins_eta), cut("wp3"))
+    h_wp1_eta = Hist(split("jet_eta_phys", x_bins_eta), cut("wp1"))
+    h_wp2_eta = Hist(split("jet_eta_phys", x_bins_eta), cut("wp2"))
+    h_wp3_eta = Hist(split("jet_eta_phys", x_bins_eta), cut("wp3"))
     h_wp1_eta.fill(data_)
     h_wp2_eta.fill(data_)
     h_wp3_eta.fill(data_)
-    h_wp1_eta_ref = Hist(split("jet_eta", x_bins_eta), cut("wp1_ref"))
-    h_wp2_eta_ref = Hist(split("jet_eta", x_bins_eta), cut("wp2_ref"))
-    h_wp3_eta_ref = Hist(split("jet_eta", x_bins_eta), cut("wp3_ref"))
+    h_wp1_eta_ref = Hist(split("jet_eta_phys", x_bins_eta), cut("wp1_ref"))
+    h_wp2_eta_ref = Hist(split("jet_eta_phys", x_bins_eta), cut("wp2_ref"))
+    h_wp3_eta_ref = Hist(split("jet_eta_phys", x_bins_eta), cut("wp3_ref"))
     h_wp1_eta_ref.fill(data_)
     h_wp2_eta_ref.fill(data_)
     h_wp3_eta_ref.fill(data_)
@@ -1009,7 +1049,7 @@ def doPlots(
 
     # get response and resolution plots
     if regression:
-        X_test_global["response"] = X_test_global["jet_pt"] / X_test_global["jet_genmatch_pt"]
+        X_test_global["response"] = X_test_global["jet_pt_phys"] / X_test_global["jet_genmatch_pt"]
         X_test_global["response_cor"] = X_test_global["jet_pt_corr"] / X_test_global["jet_genmatch_pt"]
         X_test_global["response_reg"] = X_test_global["jet_pt_cor_reg"] / X_test_global["jet_genmatch_pt"]
 
@@ -1020,9 +1060,9 @@ def doPlots(
         mean_reg = np.median(X_test_global["response_reg"])
         std_reg = rms(X_test_global["response_reg"])
         X = np.linspace(0.0, 2.0, 100)
-        histo = plt.hist(X_test_global["response"], bins=X, label='Uncorrected' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global["response_reg"], bins=X, label='Regression' ,histtype='step', density=True)
+        histo = plt.hist(X_test_global["response"], bins=X, label='Uncorrected' ,histtype='step', density=True, color = '#1f77b4')
+        histo = plt.hist(X_test_global["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True, color = '#ff7f0e')
+        histo = plt.hist(X_test_global["response_reg"], bins=X, label='Regression' ,histtype='step', density=True, color = '#2ca02c')
         plt.xlabel('Jet response (reco/gen)')
         plt.ylabel('Jets')
         plt.xlim(0.,2.)
@@ -1182,9 +1222,9 @@ def doPlots(
             stds_reg_err.append(std_reg_err)
 
             X = np.linspace(0.0, 2.0, 100)
-            histo = plt.hist(resp_, bins=X, label='Uncorrected' ,histtype='step', density=True)
-            histo = plt.hist(resp_cor_, bins=X, label='JEC LOT' ,histtype='step', density=True)
-            histo = plt.hist(resp_reg_, bins=X, label='Regression' ,histtype='step', density=True)
+            histo = plt.hist(resp_, bins=X, label='Uncorrected' ,histtype='step', density=True, color = '#1f77b4')
+            histo = plt.hist(resp_cor_, bins=X, label='JEC LOT' ,histtype='step', density=True, color = '#ff7f0e')
+            histo = plt.hist(resp_reg_, bins=X, label='Regression' ,histtype='step', density=True, color = '#2ca02c')
             plt.xlabel('Jet response (reco/gen)')
             plt.ylabel('Jets')
             plt.xlim(0.,2.)
@@ -1235,9 +1275,9 @@ def doPlots(
         means_reg = np.array(means_reg_b)
         means_reg_err = np.array(means_reg_err_b)
         centers = np.array(centers)
-        plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - b', linestyle = "-", marker = "o")
-        plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - b', linestyle = "-", marker = "o")
-        plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - b', linestyle = "-", marker = "o")
+        plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - b', linestyle = "-", marker = "o", color = '#1f77b4')
+        plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - b', linestyle = "-", marker = "o", color = '#ff7f0e')
+        plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - b', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
         # plt.xlim(0.,2.)
@@ -1256,9 +1296,9 @@ def doPlots(
         means_reg = np.array(means_reg_c)
         means_reg_err = np.array(means_reg_err_c)
         centers = np.array(centers)
-        plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - c', linestyle = "-", marker = "o")
-        plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - c', linestyle = "-", marker = "o")
-        plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - c', linestyle = "-", marker = "o")
+        plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - c', linestyle = "-", marker = "o", color = '#1f77b4')
+        plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - c', linestyle = "-", marker = "o", color = '#ff7f0e')
+        plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - c', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
         # plt.xlim(0.,2.)
@@ -1277,9 +1317,9 @@ def doPlots(
         means_reg = np.array(means_reg_uds)
         means_reg_err = np.array(means_reg_err_uds)
         centers = np.array(centers)
-        plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - uds', linestyle = "-", marker = "o")
-        plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - uds', linestyle = "-", marker = "o")
-        plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - uds', linestyle = "-", marker = "o")
+        plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - uds', linestyle = "-", marker = "o", color = '#1f77b4')
+        plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - uds', linestyle = "-", marker = "o", color = '#ff7f0e')
+        plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - uds', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
         # plt.xlim(0.,2.)
@@ -1298,9 +1338,9 @@ def doPlots(
         means_reg = np.array(means_reg_g)
         means_reg_err = np.array(means_reg_err_g)
         centers = np.array(centers)
-        plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - g', linestyle = "-", marker = "o")
-        plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - g', linestyle = "-", marker = "o")
-        plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - g', linestyle = "-", marker = "o")
+        plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - g', linestyle = "-", marker = "o", color = '#1f77b4')
+        plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - g', linestyle = "-", marker = "o", color = '#ff7f0e')
+        plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - g', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
         # plt.xlim(0.,2.)
@@ -1319,9 +1359,9 @@ def doPlots(
         means_reg = np.array(means_reg_tau)
         means_reg_err = np.array(means_reg_err_tau)
         centers = np.array(centers)
-        plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - tau', linestyle = "-", marker = "o")
-        plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - tau', linestyle = "-", marker = "o")
-        plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - tau', linestyle = "-", marker = "o")
+        plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - tau', linestyle = "-", marker = "o", color = '#1f77b4')
+        plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - tau', linestyle = "-", marker = "o", color = '#ff7f0e')
+        plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - tau', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
         # plt.xlim(0.,2.)
@@ -1333,9 +1373,9 @@ def doPlots(
         plt.cla()
 
         # now plot the resolution vs gen pT
-        plt.plot(centers, stds_uncor, label='Uncorrected', linestyle = "-", marker = "o")
-        plt.plot(centers, stds_cor, label='JEC LOT', linestyle = "-", marker = "o")
-        plt.plot(centers, stds_reg, label='Regression', linestyle = "-", marker = "o")
+        plt.plot(centers, stds_uncor, label='Uncorrected', linestyle = "-", marker = "o", color = '#1f77b4')
+        plt.plot(centers, stds_cor, label='JEC LOT', linestyle = "-", marker = "o", color = '#ff7f0e')
+        plt.plot(centers, stds_reg, label='Regression', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('RMS (Response (reco/gen))')
         # plt.xlim(0.,2.)
@@ -1354,9 +1394,9 @@ def doPlots(
         mean_reg = np.median(X_test_global[X_test_global["label_b"]>0]["response_reg"])
         std_reg = rms(X_test_global[X_test_global["label_b"]>0]["response_reg"])
         X = np.linspace(0.0, 2.0, 100)
-        histo = plt.hist(X_test_global[X_test_global["label_b"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global[X_test_global["label_b"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global[X_test_global["label_b"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True)
+        histo = plt.hist(X_test_global[X_test_global["label_b"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True, color = '#1f77b4')
+        histo = plt.hist(X_test_global[X_test_global["label_b"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True, color = '#ff7f0e')
+        histo = plt.hist(X_test_global[X_test_global["label_b"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True, color = '#2ca02c')
         plt.xlabel('Jet response (reco/gen)')
         plt.ylabel('Jets')
         plt.xlim(0.,2.)
@@ -1378,9 +1418,9 @@ def doPlots(
         mean_reg = np.median(X_test_global[X_test_global["label_g"]>0]["response_reg"])
         std_reg = rms(X_test_global[X_test_global["label_g"]>0]["response_reg"])
         X = np.linspace(0.0, 2.0, 100)
-        histo = plt.hist(X_test_global[X_test_global["label_g"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global[X_test_global["label_g"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global[X_test_global["label_g"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True)
+        histo = plt.hist(X_test_global[X_test_global["label_g"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True, color = '#1f77b4')
+        histo = plt.hist(X_test_global[X_test_global["label_g"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True, color = '#ff7f0e')
+        histo = plt.hist(X_test_global[X_test_global["label_g"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True, color = '#2ca02c')
         plt.xlabel('Jet response (reco/gen)')
         plt.ylabel('Jets')
         plt.xlim(0.,2.)
@@ -1402,9 +1442,9 @@ def doPlots(
         mean_reg = np.median(X_test_global[X_test_global["label_uds"]>0]["response_reg"])
         std_reg = rms(X_test_global[X_test_global["label_uds"]>0]["response_reg"])
         X = np.linspace(0.0, 2.0, 100)
-        histo = plt.hist(X_test_global[X_test_global["label_uds"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global[X_test_global["label_uds"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global[X_test_global["label_uds"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True)
+        histo = plt.hist(X_test_global[X_test_global["label_uds"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True, color = '#1f77b4')
+        histo = plt.hist(X_test_global[X_test_global["label_uds"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True, color = '#ff7f0e')
+        histo = plt.hist(X_test_global[X_test_global["label_uds"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True, color = '#2ca02c')
         plt.xlabel('Jet response (reco/gen)')
         plt.ylabel('Jets')
         plt.xlim(0.,2.)
@@ -1426,9 +1466,9 @@ def doPlots(
         mean_reg = np.median(X_test_global[X_test_global["label_c"]>0]["response_reg"])
         std_reg = rms(X_test_global[X_test_global["label_c"]>0]["response_reg"])
         X = np.linspace(0.0, 2.0, 100)
-        histo = plt.hist(X_test_global[X_test_global["label_c"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global[X_test_global["label_c"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global[X_test_global["label_c"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True)
+        histo = plt.hist(X_test_global[X_test_global["label_c"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True, color = '#1f77b4')
+        histo = plt.hist(X_test_global[X_test_global["label_c"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True, color = '#ff7f0e')
+        histo = plt.hist(X_test_global[X_test_global["label_c"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True, color = '#2ca02c')
         plt.xlabel('Jet response (reco/gen)')
         plt.ylabel('Jets')
         plt.xlim(0.,2.)
@@ -1450,9 +1490,9 @@ def doPlots(
         mean_reg = np.median(X_test_global[X_test_global["label_tau"]>0]["response_reg"])
         std_reg = rms(X_test_global[X_test_global["label_tau"]>0]["response_reg"])
         X = np.linspace(0.0, 2.0, 100)
-        histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True)
-        histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True)
+        histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True, color = '#1f77b4')
+        histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True, color = '#ff7f0e')
+        histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True, color = '#2ca02c')
         plt.xlabel('Jet response (reco/gen)')
         plt.ylabel('Jets')
         plt.xlim(0.,2.)

@@ -17,10 +17,15 @@ import pandas
 import numpy
 from histbook import *
 
-recoTauFile = "../recoTauNTuples/baselineAll200.root"
-genTauFile = "../genTauNTuples/baselineAll200.root"
+# recoTauFile = "../recoTauNTuples/baselineAll200.root"
+# genTauFile = "../genTauNTuples/baselineAll200.root"
 
-outFolder = "matchingPlots/baselineTRK/"
+# outFolder = "matchingPlots/baselineTRK/"
+
+recoTauFile = "../recoTauNTuples/extendedAll200.root"
+genTauFile = "../genTauNTuples/extendedAll200.root"
+
+outFolder = "matchingPlots/extendedTRK/"
 if not os.path.exists(outFolder):
     os.makedirs(outFolder)
 
@@ -75,6 +80,41 @@ plt.legend(loc='upper right')
 hep.cms.label("Private Work", data = False, com = 14)
 plt.savefig(outFolder+"/matcheff_vs_pt"+".png")
 plt.savefig(outFolder+"/matcheff_vs_pt"+".pdf")
+plt.cla()
+
+# efficiency vs pT 2
+# x_bins_pt = np.array([10., 15., 20., 25., 30., 40., 50., 75., 100., 150., 200., 500., 1000.])
+# x_bins_pt = np.array([0., 15., 20., 30., 40., 50., 75., 100., 125., 150., 175., 200., 300., 500., 750., 1000.])
+# x_bins_pt = np.array([10., 15., 20., 30., 40., 50., 60., 70., 80., 90., 100., 125., 150., 175., 200., 250., 300., 400., 500., 750., 1000.])
+x_bins_pt = np.array([5., 10., 15., 20., 25., 30., 35., 40., 45., 50., 60., 70., 80., 90., 100.])
+
+data_ = ak.to_pandas(data)
+
+h_hasJetMatch = Hist(split("gentau_pt", x_bins_pt), cut("hasJetMatch"))
+h_hasJetMatch.fill(data_)
+h_hasTauMatch = Hist(split("gentau_pt", x_bins_pt), cut("hasTauMatch"))
+h_hasTauMatch.fill(data_)
+
+df_hasJetMatch = h_hasJetMatch.pandas("hasJetMatch", error="normal")
+df_hasTauMatch = h_hasTauMatch.pandas("hasTauMatch", error="normal")
+
+df_hasJetMatch["midpoints"] = [x[0].mid if isinstance(x[0], pandas.Interval) else numpy.nan for x in df_hasJetMatch.index]
+df_hasTauMatch["midpoints"] = [x[0].mid if isinstance(x[0], pandas.Interval) else numpy.nan for x in df_hasTauMatch.index]
+
+plt.cla()
+# now scatter plot with error bars
+ax = df_hasJetMatch.plot.line(x="midpoints", y="hasJetMatch", yerr="err(hasJetMatch)", label = "SCJet matching eff.", color="blue", linestyle='-')
+df_hasTauMatch.plot.line(x="midpoints", y="hasTauMatch", yerr="err(hasTauMatch)", label = "NNPuppiTau matching eff.", ax = ax, color="orange", linestyle='--')
+plt.xlabel(r'Gen. tau $p_T$ [GeV]')
+plt.ylabel('Matching efficiency')
+plt.ylim(0., 1.3)
+plt.xlim(5., 100.)
+# plt.semilogx()
+plt.legend(prop={'size': 10})
+plt.legend(loc='upper right')
+hep.cms.label("Private Work", data = False, com = 14)
+plt.savefig(outFolder+"/matcheff_vs_pt_low"+".png")
+plt.savefig(outFolder+"/matcheff_vs_pt_low"+".pdf")
 plt.cla()
 
 # efficiency vs eta

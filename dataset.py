@@ -60,7 +60,7 @@ def readDataFromFile(filename, filter = "jet_*", applyBaseCut = True):
         how = "zip")
     if applyBaseCut:
         # jet_ptmin =   (data['jet_pt'] > 15.) & (np.abs(data['jet_eta']) < 2.4)
-        jet_ptmin =   (data['jet_pt'] > 15.) & (np.abs(data['jet_eta']) < 2.4) & (data['jet_genmatch_pt'] > 0)
+        jet_ptmin =   (data['jet_pt_phys'] > 15.) & (np.abs(data['jet_eta_phys']) < 2.4) & (data['jet_genmatch_pt'] > 0)
         data = data[jet_ptmin]
     return data
 
@@ -116,7 +116,7 @@ def splitFlavors(data, splitTau = True, splitGluon = True, splitCharm = True):
         )
     data['label_uds'] = condition_uds
 
-    data['target_pt'] = np.clip(((data["label_b"]) | (data["label_c"]) | (data["label_uds"]) | (data["label_g"]))*ak.nan_to_num(data["jet_genmatch_pt"]/data["jet_pt"],nan=0,posinf=0,neginf=0)+((data["label_tau"]))*ak.nan_to_num((data["jet_genmatch_lep_vis_pt"]/data["jet_pt"]),nan=0,posinf=0,neginf=0),0.3,2)
+    data['target_pt'] = np.clip(((data["label_b"]) | (data["label_c"]) | (data["label_uds"]) | (data["label_g"]))*ak.nan_to_num(data["jet_genmatch_pt"]/data["jet_pt_phys"],nan=0,posinf=0,neginf=0)+((data["label_tau"]))*ak.nan_to_num((data["jet_genmatch_lep_vis_pt"]/data["jet_pt_phys"]),nan=0,posinf=0,neginf=0),0.3,2)
     print(data['target_pt'])
 
     data_b = data[(condition_b)]
@@ -190,7 +190,7 @@ def reduceDatasetToMin(dataJson):
 
 
 def addResponseVars(data):
-    data['jet_ptUncorr_div_ptGen'] = ak.nan_to_num(data['jet_pt']/data['jet_genmatch_pt'], copy=True, nan=0.0, posinf=0., neginf=0.)
+    data['jet_ptUncorr_div_ptGen'] = ak.nan_to_num(data['jet_pt_phys']/data['jet_genmatch_pt'], copy=True, nan=0.0, posinf=0., neginf=0.)
     data['jet_ptCorr_div_ptGen'] = ak.nan_to_num(data['jet_pt_corr']/data['jet_genmatch_pt'], copy=True, nan=0.0, posinf=0., neginf=0.)
     data['jet_ptRaw_div_ptGen'] = ak.nan_to_num(data['jet_pt_raw']/data['jet_genmatch_pt'], copy=True, nan=0.0, posinf=0., neginf=0.)
 

@@ -14,7 +14,7 @@ batch_name = L1TTrainings
 #Requirements = OpSysAndVer == "CentOS7"
 RequestCPUs = 1
 #RequestGPUs = 1
-RequestMemory = 25000
+RequestMemory = 30000
 #+RequestRuntime = 800000
 +RequestRuntime = 50400
 

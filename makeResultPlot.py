@@ -81,44 +81,58 @@ def rms(array):
 #             'pt_log','eta','phi',]
 
 pfcand_fields_all = [
-            'puppiweight','pt_rel','pt_rel_log',
-            'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
-            'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
-            'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-            'pt_log','eta','phi',
+    'puppiweight','pt_rel','pt_rel_log',
+    'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+    'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
+    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+    'pt_log','eta','phi',
 
-            'emid','quality','tkquality',
-            'track_valid','track_rinv',
-            'track_phizero','track_tanl','track_z0','z0',
-            'track_d0','track_chi2rphi','track_chi2rz',
-            'track_bendchi2','track_hitpattern','track_nstubs',
-            # 'track_mvaquality',
-            'track_mvaother',
+    'emid','quality','tkquality',
+    'track_valid','track_rinv',
+    'track_phizero','track_tanl','track_z0','z0',
+    'track_d0','track_chi2rphi','track_chi2rz',
+    'track_bendchi2','track_hitpattern','track_nstubs',
+    # 'track_mvaquality',
+    'track_mvaother',
 
-            ]
-        # A slightly reduced set
-pfcand_fields_baseline = [
-            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"
-            ]
-        # a custom set
+    ]
+# A slightly reduced set
+pfcand_fields_baselineHW = [
+    'pt','eta','phi','charge','id', 'z0', 'dxy',
+    ]
+# a custom set
+pfcand_fields_baselineEmulator = [
+    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    ]
+# a custom set
 pfcand_fields_ext1 = [
-            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'puppiweight',
+    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    'pt_log','eta','phi',
 
-            ]
-        # let's take all HW values
+    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+
+    'emid','quality','tkquality',
+    'track_valid','track_rinv',
+    'track_phizero','track_tanl','track_z0','z0',
+    'track_d0','track_chi2rphi','track_chi2rz',
+    'track_bendchi2','track_hitpattern','track_nstubs',
+    # 'track_mvaquality',
+    'track_mvaother',
+
+    ]
+# let's take all HW values
 pfcand_fields_ext2 = [
-            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'pt_log','eta','phi',
+    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    'pt_log','eta','phi',
 
-            'emid','quality','tkquality',
-            'track_valid','track_rinv',
-            'track_phizero','track_tanl','track_z0','z0',
-            'track_d0','track_chi2rphi','track_chi2rz',
-            'track_bendchi2','track_hitpattern','track_nstubs',
-            # 'track_mvaquality',
-            'track_mvaother',
-            ]
+    'emid','quality','tkquality',
+    'track_valid','track_rinv',
+    'track_phizero','track_tanl','track_z0','z0',
+    'track_d0','track_chi2rphi','track_chi2rz',
+    'track_bendchi2','track_hitpattern','track_nstubs',
+    # 'track_mvaquality',
+    'track_mvaother',
+    ]
 
 
 modelnamesDict = {
@@ -143,6 +157,7 @@ def doPlots(
         regression,
         pruning,
         inputQuant,
+        test = False,
         save = True,
         workdir = "./",):
 
@@ -150,13 +165,17 @@ def doPlots(
 
     tempflav = "btgc"
 
-    PATH = workdir + '/datasets_notreduced_chunked/' + filetag + "/" + tempflav + "/"
+    # PATH = workdir + '/datasets_notreduced_chunked/' + filetag + "/" + tempflav + "/"
+    # PATH = workdir + '/datasets_notreduced_chunked_13X_v9/' + filetag + "/" + tempflav + "/"
+    PATH = workdir + '/datasets_13X_v9/' + filetag + "/" + tempflav + "/"
     outFolder = "outputPlots/"+outname+"/Training_" + timestamp + "/"
     if not os.path.exists(outFolder):
         os.makedirs(outFolder, exist_ok=True)
 
-    if inputSetTag == "baseline":
-        feature_names = pfcand_fields_baseline
+    if inputSetTag == "baselineHW":
+        feature_names = pfcand_fields_baselineHW
+    elif inputSetTag == "baselineEmulator":
+        feature_names = pfcand_fields_baselineEmulator
     elif inputSetTag == "ext1":
         feature_names = pfcand_fields_ext1
     elif inputSetTag == "ext2":
@@ -169,9 +188,13 @@ def doPlots(
     chunksmatching = [chunksm.replace(PATH+"X_"+inputSetTag+"_test","").replace(".parquet","").replace("_","") for chunksm in chunksmatching]
 
     # chunksmatching = chunksmatching[:3]
+    if test:
+        import random
+        chunksmatching = random.sample(chunksmatching, 5)
+        # chunksmatching = chunksmatching[:5]
 
     # filter = "/(jet)_(eta|phi|pt|pt_raw|mass|energy|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
-    filter = "/(jet)_(eta|eta_phys|phi|pt|pt_phys|pt_raw|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
+    # filter = "/(jet)_(eta|eta_phys|phi|pt|pt_phys|pt_raw|bjetscore|tauscore|taupt|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
 
     print ("Loading data in all",len(chunksmatching),"chunks.")
 
@@ -218,6 +241,9 @@ def doPlots(
                 x_charm_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_charm_"+c+".parquet")
                 if len(x_charm_) > 0:
                     x_charm =ak.concatenate((x_charm, x_charm_))
+
+    # print (X_test_global)
+    # print (X_test_global.fields)
 
     x_b = ak.to_numpy(x_b)
     x_bkg = ak.to_numpy(x_bkg)
@@ -545,7 +571,7 @@ def doPlots(
     plt.ylim(0.001,1)
     plt.grid(True)
     plt.legend(loc='lower right')
-    hep.cms.label("Private Work", data=False, com = 14)
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
     plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
     plt.cla()
@@ -570,7 +596,7 @@ def doPlots(
     plt.ylim(0.001,1)
     plt.grid(True)
     plt.legend(loc='lower right')
-    hep.cms.label("Private Work", data=False, com = 14)
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
     plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
     plt.cla()
@@ -594,7 +620,7 @@ def doPlots(
         plt.ylim(0.001,1)
         plt.grid(True)
         plt.legend(loc='lower right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
         plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
         plt.cla()
@@ -613,7 +639,7 @@ def doPlots(
         plt.ylim(0.001,1)
         plt.grid(True)
         plt.legend(loc='lower right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
         plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
         plt.cla()
@@ -632,7 +658,7 @@ def doPlots(
         plt.ylim(0.001,1)
         plt.grid(True)
         plt.legend(loc='lower right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
         plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
         plt.cla()
@@ -661,7 +687,7 @@ def doPlots(
     plt.ylim(0.001,1)
     plt.grid(True)
     plt.legend(loc='lower right')
-    hep.cms.label("Private Work", data=False, com = 14)
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/ROC_"+label_roc+".png")
     plt.savefig(outFolder+"/ROC_"+label_roc+".pdf")
     plt.cla()
@@ -686,7 +712,7 @@ def doPlots(
     plt.ylim(0.001,1)
     plt.grid(True)
     plt.legend(loc='lower right')
-    hep.cms.label("Private Work", data=False, com = 14)
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/ROC_"+label_roc+".png")
     plt.savefig(outFolder+"/ROC_"+label_roc+".pdf")
     plt.cla()
@@ -711,7 +737,7 @@ def doPlots(
     plt.ylim(0.001,1)
     plt.grid(True)
     plt.legend(loc='lower right')
-    hep.cms.label("Private Work", data=False, com = 14)
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/ROC_"+label_roc+".png")
     plt.savefig(outFolder+"/ROC_"+label_roc+".pdf")
     plt.cla()
@@ -734,7 +760,7 @@ def doPlots(
         plt.xlabel(score_loop.replace("_"," ")+' score')
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/score_"+score_loop+".png")
         plt.savefig(outFolder+"/score_"+score_loop+".pdf")
         plt.cla()
@@ -751,7 +777,7 @@ def doPlots(
     # plt.xlabel('b vs udsg score')
     # plt.legend(prop={'size': 10})
     # plt.legend(loc='upper right')
-    # hep.cms.label("Private Work", data=False, com = 14)
+    # hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     # plt.savefig(outFolder+"/score_b_vs_udsg"+".png")
     # plt.savefig(outFolder+"/score_b_vs_udsg"+".pdf")
     # plt.cla()
@@ -768,7 +794,7 @@ def doPlots(
     # plt.xlabel('uds score')
     # plt.legend(prop={'size': 10})
     # plt.legend(loc='upper right')
-    # hep.cms.label("Private Work", data=False, com = 14)
+    # hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     # plt.savefig(outFolder+"/score_uds"+".png")
     # plt.savefig(outFolder+"/score_uds"+".pdf")
     # plt.cla()
@@ -786,7 +812,7 @@ def doPlots(
     #     plt.xlabel('Tau score')
     #     plt.legend(prop={'size': 10})
     #     plt.legend(loc='upper right')
-    #     hep.cms.label("Private Work", data=False, com = 14)
+    #     hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     #     plt.savefig(outFolder+"/score_tau"+".png")
     #     plt.savefig(outFolder+"/score_tau"+".pdf")
     #     plt.cla()
@@ -804,7 +830,7 @@ def doPlots(
     #     plt.xlabel('Gluon score')
     #     plt.legend(prop={'size': 10})
     #     plt.legend(loc='upper right')
-    #     hep.cms.label("Private Work", data=False, com = 14)
+    #     hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     #     plt.savefig(outFolder+"/score_gluon"+".png")
     #     plt.savefig(outFolder+"/score_gluon"+".pdf")
     #     plt.cla()
@@ -822,7 +848,7 @@ def doPlots(
     #     plt.xlabel('Charm score')
     #     plt.legend(prop={'size': 10})
     #     plt.legend(loc='upper right')
-    #     hep.cms.label("Private Work", data=False, com = 14)
+    #     hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     #     plt.savefig(outFolder+"/score_gluon"+".png")
     #     plt.savefig(outFolder+"/score_gluon"+".pdf")
     #     plt.cla()
@@ -882,7 +908,7 @@ def doPlots(
     plt.xlim(0., 1000.)
     plt.legend(prop={'size': 10})
     plt.legend(loc='upper right')
-    hep.cms.label("Private Work", data = False, com = 14)
+    hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/eff_b_pt"+".png")
     plt.savefig(outFolder+"/eff_b_pt"+".pdf")
     plt.cla()
@@ -931,7 +957,7 @@ def doPlots(
     plt.xlim(-2.5, 2.5)
     plt.legend(prop={'size': 10})
     plt.legend(loc='upper right')
-    hep.cms.label("Private Work", data = False, com = 14)
+    hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/eff_b_eta"+".png")
     plt.savefig(outFolder+"/eff_b_eta"+".pdf")
     plt.cla()
@@ -989,7 +1015,7 @@ def doPlots(
     plt.xlim(0., 1000.)
     plt.legend(prop={'size': 10})
     plt.legend(loc='upper right')
-    hep.cms.label("Private Work", data = False, com = 14)
+    hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/eff_tau_pt"+".png")
     plt.savefig(outFolder+"/eff_tau_pt"+".pdf")
     plt.cla()
@@ -1038,7 +1064,7 @@ def doPlots(
     plt.xlim(-2.5, 2.5)
     plt.legend(prop={'size': 10})
     plt.legend(loc='upper right')
-    hep.cms.label("Private Work", data = False, com = 14)
+    hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/eff_tau_eta"+".png")
     plt.savefig(outFolder+"/eff_tau_eta"+".pdf")
     plt.cla()
@@ -1051,6 +1077,7 @@ def doPlots(
     if regression:
         X_test_global["response"] = X_test_global["jet_pt_phys"] / X_test_global["jet_genmatch_pt"]
         X_test_global["response_cor"] = X_test_global["jet_pt_corr"] / X_test_global["jet_genmatch_pt"]
+        X_test_global["response_tau"] = X_test_global["jet_taupt"] / X_test_global["jet_genmatch_pt"]
         X_test_global["response_reg"] = X_test_global["jet_pt_cor_reg"] / X_test_global["jet_genmatch_pt"]
 
         mean_uncor = np.median(np.array(X_test_global["response"]))
@@ -1071,7 +1098,7 @@ def doPlots(
         plt.text(1.3, 1.4, "median: "+str(np.round(mean_uncor,3))+" rms: "+str(np.round(std_uncor,3)), color = '#1f77b4', fontsize = 14)
         plt.text(1.3, 1.3, "median: "+str(np.round(mean_cor,3))+" rms: "+str(np.round(std_cor,3)), color = '#ff7f0e', fontsize = 14)
         plt.text(1.3, 1.2, "median: "+str(np.round(mean_reg,3))+" rms: "+str(np.round(std_reg,3)), color = '#2ca02c', fontsize = 14)
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_all"+".png")
         plt.savefig(outFolder+"/response_all"+".pdf")
         plt.cla()
@@ -1090,6 +1117,7 @@ def doPlots(
         means_uncor, means_uncor_b, means_uncor_c, means_uncor_uds, means_uncor_g, means_uncor_tau = [],[],[],[],[],[]
         means_uncor_err, means_uncor_err_b, means_uncor_err_c, means_uncor_err_uds, means_uncor_err_g, means_uncor_err_tau = [],[],[],[],[],[]
         means_reg, means_reg_b, means_reg_c, means_reg_uds, means_reg_g, means_reg_tau = [],[],[],[],[],[]
+        means_refReg_tau, means_refReg_err_tau = [], []
         means_reg_err, means_reg_err_b, means_reg_err_c, means_reg_err_uds, means_reg_err_g, means_reg_err_tau = [],[],[],[],[],[]
         stds_cor, stds_cor_b, stds_cor_c, stds_cor_uds, stds_cor_g, stds_cor_tau = [],[],[],[],[],[]
         stds_cor_err, stds_cor_err_b, stds_cor_err_c, stds_cor_err_uds, stds_cor_err_g, stds_cor_err_tau = [],[],[],[],[],[]
@@ -1123,6 +1151,8 @@ def doPlots(
             resp_reg_uds = np.array(X_test_global[((X_test_global["label_uds"] > 0) & (X_test_global["jet_genmatch_pt"] > ptLowEdge) & (X_test_global["jet_genmatch_pt"] < ptHighEdge) & (X_test_global["response_reg"] > 0.  )& (X_test_global["response_reg"] < 2. ))]["response_reg"])
             resp_reg_g = np.array(X_test_global[((X_test_global["label_g"] > 0) & (X_test_global["jet_genmatch_pt"] > ptLowEdge) & (X_test_global["jet_genmatch_pt"] < ptHighEdge) & (X_test_global["response_reg"] > 0.  )& (X_test_global["response_reg"] < 2. ))]["response_reg"])
             resp_reg_tau = np.array(X_test_global[((X_test_global["label_tau"] > 0) & (X_test_global["jet_genmatch_pt"] > ptLowEdge) & (X_test_global["jet_genmatch_pt"] < ptHighEdge) & (X_test_global["response_reg"] > 0.  )& (X_test_global["response_reg"] < 2. ))]["response_reg"])
+
+            resp_refReg_tau = np.array(X_test_global[((X_test_global["label_tau"] > 0) & (X_test_global["jet_genmatch_pt"] > ptLowEdge) & (X_test_global["jet_genmatch_pt"] < ptHighEdge) & (X_test_global["response_tau"] > 0.  )& (X_test_global["response_tau"] < 2. ))]["response"])
 
             mean_uncor = np.median(resp_)
             mean_uncor_b = np.median(resp_b)
@@ -1162,12 +1192,14 @@ def doPlots(
             mean_reg_uds = np.median(resp_reg_uds)
             mean_reg_g = np.median(resp_reg_g)
             mean_reg_tau = np.median(resp_reg_tau)
+            mean_refReg_tau = np.median(resp_refReg_tau)
             mean_reg_err = getMedianError(resp_reg_)
             mean_reg_err_b = getMedianError(resp_reg_b)
             mean_reg_err_c = getMedianError(resp_reg_c)
             mean_reg_err_uds = getMedianError(resp_reg_uds)
             mean_reg_err_g = getMedianError(resp_reg_g)
             mean_reg_err_tau = getMedianError(resp_reg_tau)
+            mean_refReg_err_tau = getMedianError(resp_refReg_tau)
 
             std_reg = rms(resp_reg_)
             std_reg_err = rms(resp_reg_)
@@ -1206,6 +1238,7 @@ def doPlots(
             means_reg_uds.append(mean_reg_uds)
             means_reg_g.append(mean_reg_g)
             means_reg_tau.append(mean_reg_tau)
+            means_refReg_tau.append(mean_refReg_tau)
 
             means_reg_err.append(mean_reg_err)
             means_reg_err_b.append(mean_reg_err_b)
@@ -1213,6 +1246,7 @@ def doPlots(
             means_reg_err_uds.append(mean_reg_err_uds)
             means_reg_err_g.append(mean_reg_err_g)
             means_reg_err_tau.append(mean_reg_err_tau)
+            means_refReg_err_tau.append(mean_refReg_err_tau)
 
             stds_cor.append(std_cor)
             stds_cor_err.append(std_cor_err)
@@ -1234,7 +1268,7 @@ def doPlots(
             plt.text(1.3, 1.3, "median: "+str(np.round(mean_cor,3))+" rms: "+str(np.round(std_cor,3)), color = '#ff7f0e', fontsize = 14)
             plt.text(1.3, 1.2, "median: "+str(np.round(mean_reg,3))+" rms: "+str(np.round(std_reg,3)), color = '#2ca02c', fontsize = 14)
             plt.text(0.7, 2.2, str(ptLowEdge)+" GeV < $p_T$ (gen) < "+str(ptHighEdge)+" GeV", color = 'black', fontsize = 18)
-            hep.cms.label("Private Work", data=False, com = 14)
+            hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
             plt.savefig(outFolder+"/response_all_"+str(ptLowEdge)+"_"+str(ptHighEdge)+".png")
             plt.savefig(outFolder+"/response_all_"+str(ptLowEdge)+"_"+str(ptHighEdge)+".pdf")
             plt.cla()
@@ -1262,7 +1296,7 @@ def doPlots(
         # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_vs_gen_pT"+".png")
         plt.savefig(outFolder+"/response_vs_gen_pT"+".pdf")
         plt.cla()
@@ -1283,7 +1317,7 @@ def doPlots(
         # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_vs_gen_pT_b"+".png")
         plt.savefig(outFolder+"/response_vs_gen_pT_b"+".pdf")
         plt.cla()
@@ -1304,7 +1338,7 @@ def doPlots(
         # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_vs_gen_pT_c"+".png")
         plt.savefig(outFolder+"/response_vs_gen_pT_c"+".pdf")
         plt.cla()
@@ -1325,7 +1359,7 @@ def doPlots(
         # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_vs_gen_pT_uds"+".png")
         plt.savefig(outFolder+"/response_vs_gen_pT_uds"+".pdf")
         plt.cla()
@@ -1346,7 +1380,7 @@ def doPlots(
         # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_vs_gen_pT_g"+".png")
         plt.savefig(outFolder+"/response_vs_gen_pT_g"+".pdf")
         plt.cla()
@@ -1357,17 +1391,20 @@ def doPlots(
         means_uncor = np.array(means_uncor_tau)
         means_uncor_err = np.array(means_uncor_err_tau)
         means_reg = np.array(means_reg_tau)
+        means_refReg = np.array(means_refReg_tau)
         means_reg_err = np.array(means_reg_err_tau)
+        means_refReg_err = np.array(means_refReg_err_tau)
         centers = np.array(centers)
         plt.errorbar(centers, means_uncor, yerr = means_uncor_err, label='Uncorrected - tau', linestyle = "-", marker = "o", color = '#1f77b4')
         plt.errorbar(centers, means_cor, yerr = means_cor_err, label='JEC LOT - tau', linestyle = "-", marker = "o", color = '#ff7f0e')
         plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - tau', linestyle = "-", marker = "o", color = '#2ca02c')
+        plt.errorbar(centers, means_refReg, yerr = means_refReg_err, label='Baseline-regression - tau', linestyle = "-", marker = "o", color = 'violet')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
         # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_vs_gen_pT_tau"+".png")
         plt.savefig(outFolder+"/response_vs_gen_pT_tau"+".pdf")
         plt.cla()
@@ -1381,7 +1418,7 @@ def doPlots(
         # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_rms_vs_gen_pT"+".png")
         plt.savefig(outFolder+"/response_rms_vs_gen_pT"+".pdf")
         plt.cla()
@@ -1405,7 +1442,7 @@ def doPlots(
         plt.text(1.3, 1.4, "median: "+str(np.round(mean_uncor,3))+" rms: "+str(np.round(std_uncor,3)), color = '#1f77b4', fontsize = 14)
         plt.text(1.3, 1.3, "median: "+str(np.round(mean_cor,3))+" rms: "+str(np.round(std_cor,3)), color = '#ff7f0e', fontsize = 14)
         plt.text(1.3, 1.2, "median: "+str(np.round(mean_reg,3))+" rms: "+str(np.round(std_reg,3)), color = '#2ca02c', fontsize = 14)
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_b"+".png")
         plt.savefig(outFolder+"/response_b"+".pdf")
         plt.cla()
@@ -1429,7 +1466,7 @@ def doPlots(
         plt.text(1.3, 1.4, "median: "+str(np.round(mean_uncor,3))+" rms: "+str(np.round(std_uncor,3)), color = '#1f77b4', fontsize = 14)
         plt.text(1.3, 1.3, "median: "+str(np.round(mean_cor,3))+" rms: "+str(np.round(std_cor,3)), color = '#ff7f0e', fontsize = 14)
         plt.text(1.3, 1.2, "median: "+str(np.round(mean_reg,3))+" rms: "+str(np.round(std_reg,3)), color = '#2ca02c', fontsize = 14)
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_g"+".png")
         plt.savefig(outFolder+"/response_g"+".pdf")
         plt.cla()
@@ -1453,7 +1490,7 @@ def doPlots(
         plt.text(1.3, 1.4, "median: "+str(np.round(mean_uncor,3))+" rms: "+str(np.round(std_uncor,3)), color = '#1f77b4', fontsize = 14)
         plt.text(1.3, 1.3, "median: "+str(np.round(mean_cor,3))+" rms: "+str(np.round(std_cor,3)), color = '#ff7f0e', fontsize = 14)
         plt.text(1.3, 1.2, "median: "+str(np.round(mean_reg,3))+" rms: "+str(np.round(std_reg,3)), color = '#2ca02c', fontsize = 14)
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_uds"+".png")
         plt.savefig(outFolder+"/response_uds"+".pdf")
         plt.cla()
@@ -1477,7 +1514,7 @@ def doPlots(
         plt.text(1.3, 1.4, "median: "+str(np.round(mean_uncor,3))+" rms: "+str(np.round(std_uncor,3)), color = '#1f77b4', fontsize = 14)
         plt.text(1.3, 1.3, "median: "+str(np.round(mean_cor,3))+" rms: "+str(np.round(std_cor,3)), color = '#ff7f0e', fontsize = 14)
         plt.text(1.3, 1.2, "median: "+str(np.round(mean_reg,3))+" rms: "+str(np.round(std_reg,3)), color = '#2ca02c', fontsize = 14)
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_c"+".png")
         plt.savefig(outFolder+"/response_c"+".pdf")
         plt.cla()
@@ -1488,11 +1525,14 @@ def doPlots(
         mean_cor = np.median(X_test_global[X_test_global["label_tau"]>0]["response_cor"])
         std_cor = rms(X_test_global[X_test_global["label_tau"]>0]["response_cor"])
         mean_reg = np.median(X_test_global[X_test_global["label_tau"]>0]["response_reg"])
+        mean_refReg = np.median(X_test_global[X_test_global["label_tau"]>0]["response_tau"])
         std_reg = rms(X_test_global[X_test_global["label_tau"]>0]["response_reg"])
+        std_refReg = rms(X_test_global[X_test_global["label_tau"]>0]["response_tau"])
         X = np.linspace(0.0, 2.0, 100)
         histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["response"], bins=X, label='Uncorrected' ,histtype='step', density=True, color = '#1f77b4')
         histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["response_cor"], bins=X, label='JEC LOT' ,histtype='step', density=True, color = '#ff7f0e')
         histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["response_reg"], bins=X, label='Regression' ,histtype='step', density=True, color = '#2ca02c')
+        histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["response_tau"], bins=X, label='Baseline-regression' ,histtype='step', density=True, color = 'violet')
         plt.xlabel('Jet response (reco/gen)')
         plt.ylabel('Jets')
         plt.xlim(0.,2.)
@@ -1501,7 +1541,8 @@ def doPlots(
         plt.text(1.3, 1.4, "median: "+str(np.round(mean_uncor,3))+" rms: "+str(np.round(std_uncor,3)), color = '#1f77b4', fontsize = 14)
         plt.text(1.3, 1.3, "median: "+str(np.round(mean_cor,3))+" rms: "+str(np.round(std_cor,3)), color = '#ff7f0e', fontsize = 14)
         plt.text(1.3, 1.2, "median: "+str(np.round(mean_reg,3))+" rms: "+str(np.round(std_reg,3)), color = '#2ca02c', fontsize = 14)
-        hep.cms.label("Private Work", data=False, com = 14)
+        plt.text(1.3, 1.1, "median: "+str(np.round(mean_refReg,3))+" rms: "+str(np.round(std_refReg,3)), color = 'violet', fontsize = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_tau"+".png")
         plt.savefig(outFolder+"/response_tau"+".pdf")
         plt.cla()
@@ -1557,6 +1598,7 @@ if __name__ == "__main__":
     parser.add_argument('--pruning', dest = 'pruning', default = False, action='store_true')
     parser.add_argument('--inputQuant', dest = 'inputQuant', default = False, action='store_true')
     parser.add_argument('--timestamp', dest = 'timestamp')
+    parser.add_argument('--test', dest = 'test', default = False, action='store_true')
     # parser.add_argument('--classweights', dest = 'classweights', default = False, action='store_true')
 
 
@@ -1587,4 +1629,5 @@ if __name__ == "__main__":
         args.regression,
         args.pruning,
         args.inputQuant,
+        args.test,
         )

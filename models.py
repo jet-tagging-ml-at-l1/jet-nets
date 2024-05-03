@@ -270,7 +270,7 @@ def getMLPWAttention(nclasses, input_shape, nnodes_phi = 16, nnodes_rho = 16, nb
     return model, fname, custom_objects
 
 
-def getDeepSet(nclasses, input_shape, nnodes_phi = 16, nnodes_rho = 16, nbits = 8, integ = 0, addRegression = False):
+def getDeepSet(nclasses, input_shape, nnodes_phi = 16, nnodes_rho = 16, nbits = 8, integ = 0, addRegression = False, nLayers = 3):
 
     # Define DeepSet Permutation Invariant Model
 
@@ -347,19 +347,25 @@ def getDeepSet(nclasses, input_shape, nnodes_phi = 16, nnodes_rho = 16, nbits = 
 
     # Input point features BatchNormalization 
     # h = QBatchNormalization(name='qBatchnorm', beta_quantizer=qbits, gamma_quantizer=qbits)(inp)
-    h = QBatchNormalization(name='qBatchnorm', beta_quantizer=qbits, gamma_quantizer=qbits, mean_quantizer=qbits, variance_quantizer=qbits)(inp)
-    # Phi MLP ( permutation equivariant layers )
-    h = QDense(nnodes_phi, name='qDense_phi1', **dense_kwargs)(h)
-    h = QActivation(qact,name='qActivation_phi1')(h)
-    # h = QBatchNormalization(name='qBatchnorm_phi1', beta_quantizer=qbits, gamma_quantizer=qbits)(h)
-    h = QDense(nnodes_phi, name='qDense_phi2', **dense_kwargs)(h)
-    h = QActivation(qact,name='qActivation_phi2')(h)
-    # h = QBatchNormalization(name='qBatchnorm_phi2', beta_quantizer=qbits, gamma_quantizer=qbits)(h)
-    h = QDense(nnodes_phi, name='qDense_phi3', **dense_kwargs)(h)
-    phi_out = QActivation(qact,name='qActivation_phi3')(h)
+    # h = QBatchNormalization(name='qBatchnorm', beta_quantizer=qbits, gamma_quantizer=qbits, mean_quantizer=qbits, variance_quantizer=qbits)(inp)
+    h = BatchNormalization(name='batchnorm')(inp)
+    for iLayer in range(1, nLayers):
+        # Phi MLP ( permutation equivariant layers )
+        h = QDense(nnodes_phi, name='qDense_phi'+str(iLayer), **dense_kwargs)(h)
+        h = QActivation(qact,name='qActivation_phi'+str(iLayer))(h)
+        # h = QBatchNormalization(name='qBatchnorm_phi1', beta_quantizer=qbits, gamma_quantizer=qbits)(h)
+        # h = QDense(nnodes_phi, name='qDense_phi2', **dense_kwargs)(h)
+        # h = QActivation(qact,name='qActivation_phi2')(h)
+        # h = QBatchNormalization(name='qBatchnorm_phi2', beta_quantizer=qbits, gamma_quantizer=qbits)(h)
+    h = QDense(nnodes_phi, name='qDense_phi'+str(nLayers), **dense_kwargs)(h)
+    phi_out = QActivation(qact,name='qActivation_phi'+str(nLayers))(h)
     
     # Linear activation to change HLS bitwidth to fix overflow in AveragePooling
     #h = QActivation(activation='quantized_bits(14,5)', name = 'linear_activation')(h)
+
+    # phi_out = QActivation(qbits, name = "qActivationForPool")(phi_out)
+    # phi_out = QActivation(activation='quantized_bits(15,7)', name = 'qActivationForPool')(phi_out)
+    phi_out = QActivation(activation='quantized_bits(18,8)', name = 'qActivationForPool')(phi_out)
 
     # Aggregate features (taking mean) over set elements  
     mean = GlobalAveragePooling1D(name='avgpool')(phi_out)      # return mean of features over elements
@@ -368,19 +374,20 @@ def getDeepSet(nclasses, input_shape, nnodes_phi = 16, nnodes_rho = 16, nbits = 
     # Rho MLP
     h = QDense(nnodes_rho, name='qDense_rho1', **dense_kwargs)(mean)
     h = QActivation(qact,name='qActivation_rho1')(h)
-    # h = QBatchNormalization(name='qBatchnorm_rho1', beta_quantizer=qbits, gamma_quantizer=qbits)(h)
-    # h = QDense(nnodes_rho, name='qDense_rho2', **dense_kwargs)(h)
-    # h = QActivation(qact,name='qActivation_rho2')(h)
-    # h = QBatchNormalization(name='qBatchnorm_rho2', beta_quantizer=qbits, gamma_quantizer=qbits)(h)
+    for iLayer in range(2,nLayers):
+        # # h = QBatchNormalization(name='qBatchnorm_rho1', beta_quantizer=qbits, gamma_quantizer=qbits)(h)
+        h = QDense(nnodes_rho*2, name='qDense_rho'+str(iLayer), **dense_kwargs)(h)
+        h = QActivation(qact,name='qActivation_rho'+str(iLayer))(h)
+        # # h = QBatchNormalization(name='qBatchnorm_rho2', beta_quantizer=qbits, gamma_quantizer=qbits)(h)
 
-    h_out = QDense(nnodes_rho, name='qDense_rho3', **dense_kwargs)(h)
-    h_out = QActivation(qact,name='qActivation_rho3')(h_out)
-    h_out = QDense(nclasses, name='qDense_rho4', **dense_kwargs)(h_out)
+    h_out = QDense(nnodes_rho, name='qDense_rho'+str(nLayers)+'_class', **dense_kwargs)(h)
+    h_out = QActivation(qact,name='qActivation_rho'+str(nLayers)+'_class')(h_out)
+    h_out = QDense(nclasses, name='qDense_rho'+str(nLayers+1)+'_class', **dense_kwargs)(h_out)
     out = Activation('softmax', name='output_class')(h_out)
 
     if addRegression:
-        h_reg = QDense(nnodes_rho, name='qDense_rho3_reg', **dense_kwargs)(h)
-        h_reg = QActivation(qact,name='qActivation_rho3_reg')(h_reg)
+        h_reg = QDense(nnodes_rho, name='qDense_rho'+str(nLayers)+'_reg', **dense_kwargs)(h)
+        h_reg = QActivation(qact,name='qActivation_rho'+str(nLayers)+'_reg')(h_reg)
         h_reg = QDense(1, name='qDense_rho4_reg', **dense_kwargs)(h_reg)
         out_reg = Activation('linear', name='output_reg')(h_reg)
 

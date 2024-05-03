@@ -48,7 +48,7 @@ def plotInputFeatures(Xb, Xuds, Xtau, Xgluon, Xcharm, featureNames, outFolder, o
         plt.legend(loc = "upper right")
         plt.xlabel(f"{name}")
         plt.ylabel('Jets (Normalized to 1)')
-        hep.cms.label("Private Work", data = False, com = 14)
+        hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/inputFeature_"+name+outputAddName+".png")
         plt.savefig(outFolder+"/inputFeature_"+name+outputAddName+".pdf")
         plt.cla()
@@ -74,44 +74,58 @@ def rms(array):
 #             'pt_log','eta','phi',]
 
 pfcand_fields_all = [
-            'puppiweight','pt_rel','pt_rel_log',
-            'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
-            'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
-            'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-            'pt_log','eta','phi',
+    'puppiweight','pt_rel','pt_rel_log',
+    'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+    'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
+    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+    'pt_log','eta','phi',
 
-            'emid','quality','tkquality',
-            'track_valid','track_rinv',
-            'track_phizero','track_tanl','track_z0','z0',
-            'track_d0','track_chi2rphi','track_chi2rz',
-            'track_bendchi2','track_hitpattern','track_nstubs',
-            # 'track_mvaquality',
-            'track_mvaother',
+    'emid','quality','tkquality',
+    'track_valid','track_rinv',
+    'track_phizero','track_tanl','track_z0','z0',
+    'track_d0','track_chi2rphi','track_chi2rz',
+    'track_bendchi2','track_hitpattern','track_nstubs',
+    # 'track_mvaquality',
+    'track_mvaother',
 
-            ]
-        # A slightly reduced set
-pfcand_fields_baseline = [
-            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"
-            ]
-        # a custom set
+    ]
+# A slightly reduced set
+pfcand_fields_baselineHW = [
+    'pt','eta','phi','charge','id', 'z0', 'dxy',
+    ]
+# a custom set
+pfcand_fields_baselineEmulator = [
+    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    ]
+# a custom set
 pfcand_fields_ext1 = [
-            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'puppiweight',
+    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    'pt_log','eta','phi',
 
-            ]
-        # let's take all HW values
+    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+
+    'emid','quality','tkquality',
+    'track_valid','track_rinv',
+    'track_phizero','track_tanl','track_z0','z0',
+    'track_d0','track_chi2rphi','track_chi2rz',
+    'track_bendchi2','track_hitpattern','track_nstubs',
+    # 'track_mvaquality',
+    'track_mvaother',
+
+    ]
+# let's take all HW values
 pfcand_fields_ext2 = [
-            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'pt_log','eta','phi',
+    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    'pt_log','eta','phi',
 
-            'emid','quality','tkquality',
-            'track_valid','track_rinv',
-            'track_phizero','track_tanl','track_z0','z0',
-            'track_d0','track_chi2rphi','track_chi2rz',
-            'track_bendchi2','track_hitpattern','track_nstubs',
-            # 'track_mvaquality',
-            'track_mvaother',
-            ]
+    'emid','quality','tkquality',
+    'track_valid','track_rinv',
+    'track_phizero','track_tanl','track_z0','z0',
+    'track_d0','track_chi2rphi','track_chi2rz',
+    'track_bendchi2','track_hitpattern','track_nstubs',
+    # 'track_mvaquality',
+    'track_mvaother',
+    ]
 
 def doTraining(
         filetag,
@@ -149,8 +163,10 @@ def doTraining(
     if not os.path.exists(outFolder):
         os.makedirs(outFolder, exist_ok=True)
 
-    if inputSetTag == "baseline":
-        feature_names = pfcand_fields_baseline
+    if inputSetTag == "baselineHW":
+        feature_names = pfcand_fields_baselineHW
+    elif inputSetTag == "baselineEmulator":
+        feature_names = pfcand_fields_baselineEmulator
     elif inputSetTag == "ext1":
         feature_names = pfcand_fields_ext1
     elif inputSetTag == "ext2":
@@ -160,13 +176,16 @@ def doTraining(
 
     nconstit = 16
 
-    PATH_load = workdir + '/datasets_notreduced_chunked/' + filetag + "/" + flavs + "/"
+    # PATH_load = workdir + '/datasets_notreduced_chunked/' + filetag + "/" + flavs + "/"
+    # PATH_load = workdir + '/datasets_notreduced_chunked_13X_v9/' + filetag + "/" + flavs + "/"
+    PATH_load = workdir + '/datasets_13X_v9/' + filetag + "/" + flavs + "/"
     chunksmatching = glob.glob(PATH_load+"X_"+inputSetTag+"_test*.parquet")
     chunksmatching = [chunksm.replace(PATH_load+"X_"+inputSetTag+"_test","").replace(".parquet","").replace("_","") for chunksm in chunksmatching]
 
     if test:
         import random
         chunksmatching = random.sample(chunksmatching, 5)
+        # chunksmatching = random.sample(chunksmatching, 10)
         # chunksmatching = chunksmatching[:5]
 
     # filter = "/(jet)_(eta|phi|pt|pt_raw|mass|energy|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
@@ -280,7 +299,7 @@ def doTraining(
     if nnConfig["model"] == "DeepSet":
         model, modelname, custom_objects = getDeepSet(nclasses = len(Y_train_val[0]), input_shape = (nconstit, nfeat),
                                                       nnodes_phi = nnConfig["nNodes"], nnodes_rho = nnConfig["nNodes"],
-                                                      nbits = nbits, integ = integ, addRegression = nnConfig["regression"])
+                                                      nbits = nbits, integ = integ, addRegression = nnConfig["regression"], nLayers = nnConfig["nLayers"])
     elif nnConfig["model"] == "MLP":
         model, modelname, custom_objects = getMLP(nclasses = len(Y_train_val[0]), input_shape = (nconstit, nfeat),
                                                       nnodes_phi = nnConfig["nNodes"], nnodes_rho = nnConfig["nNodes"],
@@ -304,6 +323,9 @@ def doTraining(
 
     print('Model name :', modelname)
 
+    print ("Model summary:")
+    # print the model summary
+    model.summary()
 
     # outFolder = outFolder + "/" + filetag + "_" + flavs + "_" + inputSetTag + "_" + modelname + "/"
     outFolder = outFolder + "/"+ strstamp + "_" + filetag + "_" + flavs + "_" + inputSetTag + "_" + modelname + "/"
@@ -342,8 +364,9 @@ def doTraining(
     class_weights = np.array([1., 1., 1., 1., 1.])
 
     # get pT weights, weighting all to b spectrum
-    bins_pt_weights = np.array([15, 20, 25, 30, 38, 48, 60, 76, 97, 122, 154, 195, 246, 311, 393, 496, 627, 792, 9999999999999999999])
-    bins_eta_weights = np.array([-99, -1.5, -0.5, 0., 0.5, 1.5, 99])
+    # bins_pt_weights = np.array([15, 20, 25, 30, 38, 48, 60, 76, 97, 122, 154, 195, 246, 311, 393, 496, 627, 792, 9999999999999999999])
+    bins_pt_weights = np.array([15, 18, 22, 25, 30, 38, 48, 60, 76, 97, 122, 154, 200, 300, 400, 627, 9999999999999999999])
+    # bins_eta_weights = np.array([-99, -1.5, -0.5, 0., 0.5, 1.5, 99])
     counts_b, edges_b = np.histogram(X_train_global[X_train_global["label_b"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
     counts_uds, edges_uds = np.histogram(X_train_global[X_train_global["label_uds"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
     counts_g, edges_g = np.histogram(X_train_global[X_train_global["label_g"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
@@ -398,7 +421,7 @@ def doTraining(
     plt.legend(loc = "upper right")
     plt.xlabel('Weights')
     plt.ylabel('Counts')
-    hep.cms.label("Private Work", data = False, com = 14)
+    hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/weights_"+inputSetTag+".png")
     plt.savefig(outFolder+"/weights_"+inputSetTag+".pdf")
     plt.cla()
@@ -443,9 +466,9 @@ def doTraining(
     #     # compile the model
     #     model.compile(optimizer=optim, loss='categorical_crossentropy', metrics=['categorical_accuracy'])
 
-    print ("Model summary:")
-    # print the model summary
-    model.summary()
+    # print ("Model summary:")
+    # # print the model summary
+    # model.summary()
 
     
     # outFolder = outFolder + "/" + filetag + "_" + flavs + "_" + inputSetTag + "_" + modelname + "/"
@@ -554,7 +577,7 @@ def doTraining(
         plt.legend(loc="upper right")
         plt.xlabel('epoch')
         plt.ylabel('loss')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/loss_"+inputSetTag+".png")
         plt.savefig(outFolder+"/loss_"+inputSetTag+".pdf")
         plt.cla()
@@ -565,7 +588,7 @@ def doTraining(
         plt.legend(loc="upper left")
         plt.xlabel('epoch')
         plt.ylabel('acc')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/acc_"+inputSetTag+".png")
         plt.savefig(outFolder+"/acc_"+inputSetTag+".pdf")
         plt.cla()
@@ -577,7 +600,7 @@ def doTraining(
         plt.legend(loc="upper right")
         plt.xlabel('epoch')
         plt.ylabel('loss')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/loss_class_"+inputSetTag+".png")
         plt.savefig(outFolder+"/loss_class_"+inputSetTag+".pdf")
         plt.cla()
@@ -587,7 +610,7 @@ def doTraining(
         plt.legend(loc="upper right")
         plt.xlabel('epoch')
         plt.ylabel('loss')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/loss_"+inputSetTag+".png")
         plt.savefig(outFolder+"/loss_"+inputSetTag+".pdf")
         plt.cla()
@@ -598,7 +621,7 @@ def doTraining(
         plt.legend(loc="upper left")
         plt.xlabel('epoch')
         plt.ylabel('acc')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/acc_"+inputSetTag+".png")
         plt.savefig(outFolder+"/acc_"+inputSetTag+".pdf")
         plt.cla()
@@ -609,7 +632,7 @@ def doTraining(
         plt.legend(loc="upper left")
         plt.xlabel('epoch')
         plt.ylabel('acc')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/loss_reg_"+inputSetTag+".png")
         plt.savefig(outFolder+"/loss_reg_"+inputSetTag+".pdf")
         plt.cla()
@@ -620,7 +643,7 @@ def doTraining(
         plt.legend(loc="upper left")
         plt.xlabel('epoch')
         plt.ylabel('acc')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/mae_reg_"+inputSetTag+".png")
         plt.savefig(outFolder+"/mae_reg_"+inputSetTag+".pdf")
         plt.cla()
@@ -631,7 +654,7 @@ def doTraining(
         plt.legend(loc="upper left")
         plt.xlabel('epoch')
         plt.ylabel('acc')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/mse_reg_"+inputSetTag+".png")
         plt.savefig(outFolder+"/mse_reg_"+inputSetTag+".pdf")
         plt.cla()
@@ -695,7 +718,7 @@ def doTraining(
     plt.ylim(0.001,1)
     plt.grid(True)
     plt.legend(loc='lower right')
-    hep.cms.label("Private Work", data=False, com = 14)
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/ROC_"+inputSetTag+".png")
     plt.savefig(outFolder+"/ROC_"+inputSetTag+".pdf")
     plt.cla()
@@ -738,7 +761,7 @@ def doTraining(
     plt.xlabel('uds score')
     plt.legend(prop={'size': 10})
     plt.legend(loc='upper right')
-    hep.cms.label("Private Work", data=False, com = 14)
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/score_bkg_"+inputSetTag+".png")
     plt.savefig(outFolder+"/score_bkg_"+inputSetTag+".pdf")
     plt.cla()
@@ -755,7 +778,7 @@ def doTraining(
     plt.xlabel('b score')
     plt.legend(prop={'size': 10})
     plt.legend(loc='upper right')
-    hep.cms.label("Private Work", data=False, com = 14)
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     plt.savefig(outFolder+"/score_b_"+inputSetTag+".png")
     plt.savefig(outFolder+"/score_b_"+inputSetTag+".pdf")
     plt.cla()
@@ -773,7 +796,7 @@ def doTraining(
         plt.xlabel('tau score')
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/score_tau_"+inputSetTag+".png")
         plt.savefig(outFolder+"/score_tau_"+inputSetTag+".pdf")
         plt.cla()
@@ -792,7 +815,7 @@ def doTraining(
         plt.xlabel('gluon score')
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/score_gluon_"+inputSetTag+".png")
         plt.savefig(outFolder+"/score_gluon_"+inputSetTag+".pdf")
         plt.cla()
@@ -811,7 +834,7 @@ def doTraining(
         plt.xlabel('charm score')
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/score_charm_"+inputSetTag+".png")
         plt.savefig(outFolder+"/score_charm_"+inputSetTag+".pdf")
         plt.cla()
@@ -841,7 +864,7 @@ def doTraining(
         plt.text(0.7, 0.7, "mean: "+str(np.round(mean_uncor,3))+" rms:"+str(np.round(std_uncor,3)), color = '#1f77b4')
         plt.text(0.7, 0.8, "mean: "+str(np.round(mean_cor,3))+" rms:"+str(np.round(std_cor,3)), color = '#ff7f0e')
         plt.text(0.7, 0.9, "mean: "+str(np.round(mean_reg,3))+" rms:"+str(np.round(std_reg,3)), color = '#2ca02c')
-        hep.cms.label("Private Work", data=False, com = 14)
+        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
         plt.savefig(outFolder+"/response_"+inputSetTag+".png")
         plt.savefig(outFolder+"/response_"+inputSetTag+".pdf")
         plt.cla()
@@ -901,6 +924,7 @@ if __name__ == "__main__":
     parser.add_argument('--nbits', dest = 'nbits', default = 8)
     parser.add_argument('--integ', dest = 'integ', default = 0)
     parser.add_argument('--nNodes', dest = 'nNodes', default = 15)
+    parser.add_argument('--nLayers', dest = 'nLayers', default = 3)
     parser.add_argument('--nHeads', dest = 'nHeads', default = 3)
     parser.add_argument('--nNodesHead', dest = 'nNodesHead', default = 12)
     parser.add_argument('--strstamp', dest = 'strstamp', default = "")
@@ -916,7 +940,7 @@ if __name__ == "__main__":
     allowedModels = ["DeepSet", "DeepSet-MHA", "MLP", "MLP-MHA"]
     allowedClasses = ["b", "bt", "btg", "btgc"]
     allowedFiles = ["All200", "extendedAll200", "baselineAll200", "AllHIG200", "AllQCD200", "AllTT200", "TT_PU200", "TT1L_PU200", "TT2L_PU200", "ggHtt_PU200"]
-    allowedInputs = ["baseline", "ext1", 'ext2', "all"]
+    allowedInputs = ["baselineHW", "baselineEmulator", "ext1", 'ext2', "all"]
     allowedOptimizer = ["adam", "ranger"]
 
     if args.model not in allowedModels:
@@ -944,6 +968,7 @@ if __name__ == "__main__":
         "nbits": int(args.nbits),
         "integ": int(args.integ),
         "nNodes": int(args.nNodes),
+        "nLayers": int(args.nLayers),
         "nHeads": int(args.nHeads),
         "nNodesHead": int(args.nNodesHead),
     }

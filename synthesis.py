@@ -2,24 +2,24 @@ from imports import *
 from dataset import *
 import argparse
 from models import *
-import tensorflow_model_optimization as tfmot
-from tensorflow_model_optimization.sparsity import keras as sparsity
-from tensorflow_model_optimization.python.core.sparsity.keras import pruning_callbacks, pruning_wrapper,  pruning_schedule
-from tensorflow_model_optimization.sparsity.keras import strip_pruning
-from hls4ml.model.profiling import numerical, compare, get_ymodel_keras
-
+# import tensorflow_model_optimization as tfmot
+# from tensorflow_model_optimization.sparsity import keras as sparsity
+# from tensorflow_model_optimization.python.core.sparsity.keras import pruning_callbacks, pruning_wrapper,  pruning_schedule
+# from tensorflow_model_optimization.sparsity.keras import strip_pruning
+# from hls4ml.model.profiling import numerical, compare, get_ymodel_keras
+from profiling import *
 # import ROOT
-from array import array
+# from array import array
 
 from sklearn.metrics import roc_curve, auc,precision_recall_curve
 import matplotlib.pyplot as plt
-import json
+# import json
 import glob
-import pdb
+# import pdb
 
-import shap
+# import shap
 import pandas
-import numpy
+# import numpy
 from histbook import *
 
 import sys, os, time
@@ -43,98 +43,62 @@ import time
 # import shutil
 import argparse
 
-def _is_ignored_layer(layer):
-    """Some layers need to be ingored during inference"""
-    if isinstance(layer, (keras.layers.InputLayer, keras.layers.Dropout)):
-        return True
-    return False
-
-
-def _get_outputs(layers, X, model_input):
-    """Get outputs of intermediate layers"""
-    partial_models = keras.models.Model(inputs=model_input, outputs=[layer.output for layer in layers])
-    y = partial_models.predict(X)
-    return y
-
-def get_ymodel_keras_(keras_model, X):
-    """Calculate each layer's ouput and put them into a dictionary.
-
-    Args:
-        keras_model (_type_): A keras Model
-        X (ndarray): Test data on which to evaluate the model to profile activations.
-            Must be formatted suitably for the ``model.predict(X)``.
-
-    Returns:
-        dict: A dictionary in the form {"layer_name": ouput array of layer}.
-    """
-    ymodel = {}
-    traced_layers = []
-    layer_names = []
-    for layer in keras_model.layers:
-        if _is_ignored_layer(layer):
-            continue
-        # If the layer has activation integrated then separate them
-        # Note that if the layer is a standalone activation layer then skip this
-        name = layer.name
-        print ("_-",name)
-        if (
-            hasattr(layer, "activation")
-            and hasattr(layer.activation, "__name__")
-            and layer.activation.__name__ != "linear"
-            and not isinstance(layer, (keras.layers.Activation, qlayers.QActivation))
-        ):
-            tmp_activation = layer.activation
-            layer.activation = None
-            ymodel.update({layer.name: _get_outputs([layer], X, keras_model.input)})
-            layer.activation = tmp_activation
-            name = layer.name + f"_{tmp_activation.__name__}"
-        traced_layers.append(layer)
-        layer_names.append(name)
-    outputs = _get_outputs(traced_layers, X, keras_model.input)
-    for name, output in zip(layer_names, outputs):
-        ymodel[name] = output
-    print("Done taking outputs for Keras model.")
-    return ymodel
+__tf_profiling_enabled__ = True
+__torch_profiling_enabled__ = True
 
 pfcand_fields_all = [
-            'puppiweight','pt_rel','pt_rel_log',
-            'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
-            'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
-            'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-            'pt_log','eta','phi',
+    'puppiweight','pt_rel','pt_rel_log',
+    'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+    'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
+    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+    'pt_log','eta','phi',
 
-            'emid','quality','tkquality',
-            'track_valid','track_rinv',
-            'track_phizero','track_tanl','track_z0','z0',
-            'track_d0','track_chi2rphi','track_chi2rz',
-            'track_bendchi2','track_hitpattern','track_nstubs',
-            # 'track_mvaquality',
-            'track_mvaother',
+    'emid','quality','tkquality',
+    'track_valid','track_rinv',
+    'track_phizero','track_tanl','track_z0','z0',
+    'track_d0','track_chi2rphi','track_chi2rz',
+    'track_bendchi2','track_hitpattern','track_nstubs',
+    # 'track_mvaquality',
+    'track_mvaother',
 
-            ]
-        # A slightly reduced set
-pfcand_fields_baseline = [
-            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"
-            ]
-        # a custom set
+    ]
+# A slightly reduced set
+pfcand_fields_baselineHW = [
+    'pt','eta','phi','charge','id', 'z0', 'dxy',
+    ]
+# a custom set
+pfcand_fields_baselineEmulator = [
+    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    ]
+# a custom set
 pfcand_fields_ext1 = [
-            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'puppiweight',
+    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    'pt_log','eta','phi',
 
-            ]
-        # let's take all HW values
+    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+
+    'emid','quality','tkquality',
+    'track_valid','track_rinv',
+    'track_phizero','track_tanl','track_z0','z0',
+    'track_d0','track_chi2rphi','track_chi2rz',
+    'track_bendchi2','track_hitpattern','track_nstubs',
+    # 'track_mvaquality',
+    'track_mvaother',
+
+    ]
+# let's take all HW values
 pfcand_fields_ext2 = [
-            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'pt_log','eta','phi',
+    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    'pt_log','eta','phi',
 
-            'emid','quality','tkquality',
-            'track_valid','track_rinv',
-            'track_phizero','track_tanl','track_z0','z0',
-            'track_d0','track_chi2rphi','track_chi2rz',
-            'track_bendchi2','track_hitpattern','track_nstubs',
-            # 'track_mvaquality',
-            'track_mvaother',
-            ]
+    'emid','quality','tkquality',
+    'track_valid','track_rinv',
+    'track_phizero','track_tanl','track_z0','z0',
+    'track_d0','track_chi2rphi','track_chi2rz',
+    'track_bendchi2','track_hitpattern','track_nstubs',
+    # 'track_mvaquality',
+    'track_mvaother',
+    ]
 
 modelnamesDict = {
     "DeepSet": "QDeepSets_PermutationInv",
@@ -163,13 +127,16 @@ def synthesize(
 
     tempflav = "btgc"
 
-    PATH = workdir + '/datasets_notreduced_chunked/' + filetag + "/" + tempflav + "/"
+    # PATH = workdir + '/datasets_notreduced_chunked/' + filetag + "/" + tempflav + "/"
+    PATH = workdir + '/datasets_13X_v9/' + filetag + "/" + tempflav + "/"
     outFolder = "outputSynthesis/"+outname+"/Training_" + timestamp + "/"
     if not os.path.exists(outFolder):
         os.makedirs(outFolder, exist_ok=True)
 
-    if inputSetTag == "baseline":
-        feature_names = pfcand_fields_baseline
+    if inputSetTag == "baselineHW":
+        feature_names = pfcand_fields_baselineHW
+    elif inputSetTag == "baselineEmulator":
+        feature_names = pfcand_fields_baselineEmulator
     elif inputSetTag == "ext1":
         feature_names = pfcand_fields_ext1
     elif inputSetTag == "ext2":
@@ -180,7 +147,6 @@ def synthesize(
     chunksmatching = glob.glob(PATH+"X_"+inputSetTag+"_test*.parquet")
     print (PATH+"X_"+inputSetTag+"_test*.parquet")
     chunksmatching = [chunksm.replace(PATH+"X_"+inputSetTag+"_test","").replace(".parquet","").replace("_","") for chunksm in chunksmatching]
-    # chunksmatching = chunksmatching[:3]
 
     import random
     chunksmatching = random.sample(chunksmatching, 5)
@@ -244,6 +210,9 @@ def synthesize(
 
     X_test = ak.to_numpy(X_test)
     Y_test = ak.to_numpy(Y_test)
+
+    X_test_small = X_test[:1000]
+    Y_test_small = Y_test[:1000]
 
     print("Loaded X_test      ----> shape:", X_test.shape)
     print("Loaded Y_test      ----> shape:", Y_test.shape)
@@ -319,29 +288,39 @@ def synthesize(
     )
     config = hls4ml.utils.config_from_keras_model(
         model, granularity="name",
-        default_precision="ap_fixed<16,6>"
+        # default_precision="ap_fixed<16,6>"
+        default_precision="ap_fixed<20,9>"
     )
     # config = hls4ml.utils.config_from_keras_model(model, granularity='name', default_precision='ap_fixed<32,16>')
     config["Model"]["Strategy"] = "Latency"
 
     # Handle large span of numerical values in input
     # inputPrecision = "ap_fixed<12,4,AP_RND,AP_SAT>"
-    inputPrecision = "ap_fixed<16,7,AP_RND,AP_SAT>"
+    # inputPrecision = "ap_fixed<16,7,AP_RND,AP_SAT>"
+    # inputPrecision = "ap_fixed<18,8,AP_RND,AP_SAT>"
+    inputPrecision = "ap_fixed<20,9,AP_RND,AP_SAT>"
+
+    print ("Default generated config")
+    print (config)
+
     for layer in model.layers:
         if layer.__class__.__name__ in ["BatchNormalization", "InputLayer"]:
         # if layer.__class__.__name__ in ["QBatchNormalization","BatchNormalization", "InputLayer"]:
         # if layer.__class__.__name__ in ["InputLayer"]:
             config["LayerName"][layer.name]["Precision"] = inputPrecision
-        elif layer.__class__.__name__ in ["QBatchNormalization","BatchNormalization"]:
-            config["LayerName"][layer.name]["Precision"]["accum"] = "ap_fixed<16,7,AP_RND,AP_SAT>" 
-            config["LayerName"][layer.name]["Precision"]["result"] = "ap_fixed<16,7,AP_RND,AP_SAT>" 
+            # config["LayerName"][layer.name]["accum"] = inputPrecision
+            config["LayerName"][layer.name]["result"] = inputPrecision
+            config["LayerName"][layer.name]["Trace"] = trace
+        # elif layer.__class__.__name__ in ["QBatchNormalization","BatchNormalization"]:
+        #     config["LayerName"][layer.name]["Precision"]["accum"] = "ap_fixed<16,7,AP_RND,AP_SAT>" 
+        #     config["LayerName"][layer.name]["Precision"]["result"] = "ap_fixed<16,7,AP_RND,AP_SAT>" 
         elif layer.__class__.__name__ in [
             "Permute",
             "Concatenate",
             "Flatten",
             "Reshape",
-            "GlobalAveragePooling1D",
-            "AveragePooling1D",
+            # "GlobalAveragePooling1D",
+            # "AveragePooling1D",
             "UpSampling1D",
             "Add",
         ]:
@@ -349,10 +328,43 @@ def synthesize(
         else:
             config["LayerName"][layer.name]["Trace"] = trace
 
+        for layerName in config["LayerName"]:
+            config["LayerName"][layerName]["Trace"] = True
 
-    if "Deep" in modelname:  # For DeepSets
-        for layer in model.layers:
-            config["LayerName"][layer.name]["Strategy"] = "Latency"
+    # config["LayerName"]["qDense_phi1"]["Precision"] = inputPrecision
+    # config["LayerName"]["qDense_phi1"]["Precision"]["result"] = inputPrecision
+    # config["LayerName"]["qDense_phi1"]["Precision"]["accum"] = inputPrecision
+    # config["LayerName"]["qDense_phi1"]["Precision"]["accum"] = inputPrecision
+
+    config["LayerName"]["output_class"]["Precision"]["result"] = inputPrecision
+    config["LayerName"]["output_reg"]["Precision"]["result"] = inputPrecision
+    
+    config["LayerName"]["avgpool"]["Precision"]["result"] = inputPrecision
+    config["LayerName"]["avgpool"]["Precision"] = inputPrecision
+
+    config["LayerName"]["qActivationForPool"]["Precision"]["result"] = inputPrecision
+    config["LayerName"]["qActivationForPool"]["Precision"] = inputPrecision
+
+    print ("Changed  config")
+    print (config)
+
+    # if "Deep" in modelname:  # For DeepSets
+    #     for layer in model.layers:
+    #         config["LayerName"][layer.name]["Strategy"] = "Latency"
+
+    for layer in model.layers:
+        if "qDense_phi" in layer.name:
+            print ("Add custom pointwise implementation for layer", layer.name)
+            config["LayerName"][layer.name]["ConvImplementation"] = "Pointwise"
+
+
+    layerNames = [layer.name for layer in model.layers]
+
+
+    if "qDense_phi1" in layerNames: config["LayerName"]["qDense_phi1"]["ReuseFactor"] = 3
+    if "qDense_phi2" in layerNames: config["LayerName"]["qDense_phi2"]["ReuseFactor"] = 4
+    if "qDense_phi3" in layerNames: config["LayerName"]["qDense_phi3"]["ReuseFactor"] = 4
+    if "qDense_phi4" in layerNames: config["LayerName"]["qDense_phi4"]["ReuseFactor"] = 4
 
         # config["LayerName"]["qDense_phi1"]["ConvImplementation"] = "Pointwise"
         # config["LayerName"]["qDense_phi2"]["ConvImplementation"] = "Pointwise"
@@ -363,6 +375,9 @@ def synthesize(
         # config["LayerName"]["qDense_rho1"]["ReuseFactor"] = 1
 
     # output_dir = f"{ONAME}/{mname}"
+
+    for layer in model.layers:
+        config["LayerName"][layer.name]["Strategy"] = "latency"
 
     print("Converting the Keras Model !")
 
@@ -376,7 +391,7 @@ def synthesize(
 #        part="xcvu9p-flgb2104-2l-e",
         # part="xcvu13p-flga2577-2-e", #real one
         part="xcu250-figd2104-2L-e",
-        # clock_period=2.5,
+        clock_period=2.5,
     )
 
     print("Compiling the Model !")
@@ -412,7 +427,6 @@ def synthesize(
     accs["cpu"] = accuracy_keras
     accs["fpga"] = accuracy_hls4ml
 
-    # with open("{}/{}/acc.txt".format(outFolder, modelname), "wb") as fp:
     with open("{}/{}_acc.txt".format(outFolder, modelname), "wb") as fp:
         pickle.dump(accs, fp)
     print("Keras:\n", accuracy_keras)
@@ -444,15 +458,13 @@ def synthesize(
             linestyle="dotted",
            )
     ax.semilogy()
-    ax.set_xlabel("sig. efficiency")
-    ax.set_ylabel("bkg. mistag rate")
-    # ax.set_ylim(0.001, 1)
-    # ax.set_xlim(0.0, 1.0)
+    ax.set_xlabel("Signal efficiency")
+    ax.set_ylabel("Bkg. mistag rate")
     plt.xlim(0.,1.)
     plt.ylim(0.001,1)
     plt.grid(True)
     plt.legend(loc='lower right')
-    hep.cms.label("Private Work", data=False, com = 14)
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
     plt.figtext(0.2, 0.83, r"{}".format(modelname))
     # ax.set_grid(True)
     # ax.legend(loc="lower right")
@@ -462,23 +474,24 @@ def synthesize(
 
     if trace:
         print("Running tracing!")
-        # profile_plots = hls4ml.model.profiling.numerical(model, hls_model, X_test)
-        profile_plots = numerical(model, hls_model, X_test)
+        # profile_plots = hls4ml.model.profiling.numerical(model, hls_model, X_test_small)
+        profile_plots = numerical(model, hls_model, X_test_small)
         for i, p in enumerate(profile_plots):
             # p.savefig(f"{outFolder}/profile_{modelname}_{i}.png")
             p.savefig(f"{outFolder}/profile_{modelname}_{i}.png")
             p.savefig(f"{outFolder}/profile_{modelname}_{i}.pdf")
             # plt.cla()
         plt.cla()
-        # fig = hls4ml.model.profiling.compare(model, hls_model, X_test)
-        # fig = compare(model, hls_model, X_test)
+        # fig = hls4ml.model.profiling.compare(model, hls_model, X_test_small)
+        # fig = compare(model, hls_model, X_test_small)
         # fig.savefig(f"{outFolder}/compare_{modelname}.png")
         # fig.savefig(f"{outFolder}/compare_{modelname}.pdf")
 
-        y_hls, hls4ml_trace = hls_model.trace(X_test)
-        # keras_trace = hls4ml.model.profiling.get_ymodel_keras(model, X_test)
+        y_hls, hls4ml_trace = hls_model.trace(X_test_small)
+        # keras_trace = hls4ml.model.profiling.get_ymodel_keras(model, X_test_small)
 
-        keras_trace = get_ymodel_keras_(model, X_test)
+        # keras_trace = get_ymodel_keras_(model, X_test_small)
+        keras_trace = get_ymodel_keras(model, X_test_small, ignoreLayer = False)
 
         for layer in hls4ml_trace.keys():
             print ("Doing profiling 2d for layer", layer)
@@ -486,9 +499,7 @@ def synthesize(
             plt.figure()
             # print (hls4ml_trace[layer].flatten())
             # print (keras_trace[layer].flatten())
-            plt.scatter(
-                hls4ml_trace[layer].flatten(), keras_trace[layer].flatten(), s=0.2
-            )
+            plt.scatter(hls4ml_trace[layer].flatten(), keras_trace[layer].flatten(), s=0.2)
             min_x = min(np.amin(hls4ml_trace[layer]), np.amin(keras_trace[layer]))
             max_x = max(np.amax(hls4ml_trace[layer]), np.amax(keras_trace[layer]))
             plt.plot([min_x, max_x], [min_x, max_x], c="gray")
@@ -507,20 +518,18 @@ def synthesize(
         print(report["CSynthesisReport"])
 
 
-def getReports(indir):
+def getReports(indir, modelname):
 
-    with open("{}/acc.txt".format(indir), "rb") as fp:
+    with open("{}/{}_acc.txt".format(indir, modelname), "rb") as fp:
         acc = pickle.load(fp)
 
     data_ = {}
-    if "GraphConv" in indir:
-        data_["architecture"] = "GCN"
-    elif "InteractionNetwork" in indir:
-        data_["architecture"] = "IN"
-    elif "DeepSets" in indir:
-        data_["architecture"] = "DS"  
+    if "DeepSet" in modelname:
+        data_["architecture"] = "DeepSet"  
+    elif "DeepSet-MHA" in modelname:
+        data_["architecture"] = "DeepSet-MHA"  
     else:
-        data_["architecture"] = "MLP"
+        data_["architecture"] = "Unknown"
 
     data_["precision"] = str(indir.split("_")[-1].replace("bit", "")).replace("/", "")
     data_["acc_ratio"] = round(acc["fpga"] / acc["cpu"], 2)
@@ -715,6 +724,28 @@ if __name__ == "__main__":
 
     # Only read projects
     else:
+        
+        if args.input == "baselineHW":
+            feature_names = pfcand_fields_baselineHW
+        if args.input == "baselineEmulator":
+            feature_names = pfcand_fields_baselineEmulator
+        elif args.input == "ext1":
+            feature_names = pfcand_fields_ext1
+        elif args.input == "ext2":
+            feature_names = pfcand_fields_ext2
+        elif args.input == "all":
+            feature_names = pfcand_fields_all
+
+        ncands = 16 
+        nfeatures = len(feature_names)
+        nbits = 8
+
+        outFolder = "outputSynthesis/"+args.outname+"/Training_" + args.timestamp + "/"
+
+        modelname = 'model_'+modelnamesDict[args.model]+"_nconst_"+str(ncands)+"_nfeatures_"+str(nfeatures)+"_nbits_"+str(nbits)
+        if args.pruning:
+            # modelpath = modelpath + "_pruned"
+            modelname = modelname + "_pruned"
 
         import pandas
 
@@ -732,9 +763,9 @@ if __name__ == "__main__":
         }
 
         # for mname in models:
-        print("Reading hls project {}/{}/".format(outFolder, mname))
+        print("Reading hls project {}/".format(outFolder))
 
-        datai = getReports("{}/{}/".format(outFolder, mname))
+        datai = getReports("{}/".format(outFolder), modelname)
         for key in datai.keys():
             dataMap[key].append(datai[key])
 
@@ -771,6 +802,6 @@ if __name__ == "__main__":
             )
         )
 
-    print("output dir:", outFolder)
+    # print("output dir:", outFolder)
 
 

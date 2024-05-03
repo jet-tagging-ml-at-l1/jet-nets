@@ -14,7 +14,9 @@ def createDataset(filetag, flavs, not_reduce):
     # outFolder = "datasets_chunked/"
     outFolder = "datasets_chunked_charm/"
     if not_reduce:
-        outFolder = "datasets_notreduced_chunked"
+        # outFolder = "datasets_notreduced_chunked"
+        # outFolder = "datasets_notreduced_chunked_13X_v9"
+        outFolder = "datasets_13X_v9"
     outFolder = outFolder + "/" + filetag + "/" + flavs +"/"
 
     if not os.path.exists(outFolder):
@@ -24,7 +26,7 @@ def createDataset(filetag, flavs, not_reduce):
 
     # Transform into Awkward arrays and filter its contents
     # filter = "/(jet)_(eta|phi|pt|pt_log|pt_raw|bjetscore|tauscore|pt_corr|tauflav|muflav|elflav|taudecaymode|lepflav|taucharge|genmatch_pt|genmatch_eta|genmatch_phi|genmatch_mass|genmatch_hflav|genmatch_lep_vis_pt|genmatch_lep_pt|genmatch_pflav|npfcand|pfcand_pt|pfcand_pt_rel|pfcand_pt_rel_log|pfcand_pt_log|pfcand_eta|pfcand_phi|pfcand_puppiweight|pfcand_z0|pfcand_dxy|pfcand_dxy_custom|pfcand_id|pfcand_charge|pfcand_pperp_ratio|pfcand_ppara_ratio|pfcand_deta|pfcand_dphi|pfcand_etarel|pfcand_track_chi2|pfcand_track_chi2norm|pfcand_track_qual|pfcand_track_npar|pfcand_track_nstubs|pfcand_track_vx|pfcand_track_vy|pfcand_track_vz|pfcand_track_pterror|pfcand_cluster_hovere|pfcand_cluster_sigmarr|pfcand_cluster_abszbarycenter|pfcand_cluster_emet|pfcand_cluster_egvspion|pfcand_cluster_egvspu)/"
-    filter = "/(jet)_(eta|eta_phys|phi|phi_phys|pt|pt_phys|pt_raw|bjetscore|tauscore|pt_corr|tauflav|muflav|elflav|taudecaymode|lepflav|taucharge|genmatch_pt|genmatch_eta|genmatch_phi|genmatch_mass|genmatch_hflav|genmatch_lep_vis_pt|genmatch_lep_pt|genmatch_pflav|npfcand|pfcand_pt|pfcand_pt_rel|pfcand_pt_rel_log|pfcand_pt_log|pfcand_eta|pfcand_phi|pfcand_puppiweight|jet_pfcand_emid|jet_pfcand_quality|jet_pfcand_tkquality||pfcand_z0|pfcand_dxy|pfcand_dxy_custom|pfcand_id|pfcand_charge|pfcand_pperp_ratio|pfcand_ppara_ratio|pfcand_deta|pfcand_dphi|pfcand_etarel|jet_pfcand_track_valid|jet_pfcand_track_rinv|jet_pfcand_track_phizero|jet_pfcand_track_tanl|jet_pfcand_track_z0|jet_pfcand_track_d0|jet_pfcand_track_chi2rphi|jet_pfcand_track_chi2rz|jet_pfcand_track_bendchi2|jet_pfcand_track_hitpattern|jet_pfcand_track_mvaquality|jet_pfcand_track_mvaother|pfcand_track_chi2|pfcand_track_chi2norm|pfcand_track_qual|pfcand_track_npar|pfcand_track_nstubs|pfcand_track_vx|pfcand_track_vy|pfcand_track_vz|pfcand_track_pterror|pfcand_cluster_hovere|pfcand_cluster_sigmarr|pfcand_cluster_abszbarycenter|pfcand_cluster_emet|pfcand_cluster_egvspion|pfcand_cluster_egvspu)/"
+    filter = "/(jet)_(eta|eta_phys|phi|phi_phys|pt|pt_phys|pt_raw|bjetscore|tauscore|taupt|pt_corr|tauflav|muflav|elflav|taudecaymode|lepflav|taucharge|genmatch_pt|genmatch_eta|genmatch_phi|genmatch_mass|genmatch_hflav|genmatch_lep_vis_pt|genmatch_lep_pt|genmatch_pflav|npfcand|pfcand_pt|pfcand_pt_rel|pfcand_pt_rel_log|pfcand_pt_log|pfcand_eta|pfcand_phi|pfcand_puppiweight|jet_pfcand_emid|jet_pfcand_quality|jet_pfcand_tkquality||pfcand_z0|pfcand_dxy|pfcand_dxy_custom|pfcand_id|pfcand_charge|pfcand_pperp_ratio|pfcand_ppara_ratio|pfcand_deta|pfcand_dphi|pfcand_etarel|jet_pfcand_track_valid|jet_pfcand_track_rinv|jet_pfcand_track_phizero|jet_pfcand_track_tanl|jet_pfcand_track_z0|jet_pfcand_track_d0|jet_pfcand_track_chi2rphi|jet_pfcand_track_chi2rz|jet_pfcand_track_bendchi2|jet_pfcand_track_hitpattern|jet_pfcand_track_mvaquality|jet_pfcand_track_mvaother|pfcand_track_chi2|pfcand_track_chi2norm|pfcand_track_qual|pfcand_track_npar|pfcand_track_nstubs|pfcand_track_vx|pfcand_track_vy|pfcand_track_vz|pfcand_track_pterror|pfcand_cluster_hovere|pfcand_cluster_sigmarr|pfcand_cluster_abszbarycenter|pfcand_cluster_emet|pfcand_cluster_egvspion|pfcand_cluster_egvspu)/"
 
     nconstit = 16
 
@@ -72,7 +74,7 @@ def createDataset(filetag, flavs, not_reduce):
         # # hep.histplot(flat_jethflav, yerr=True)
         # plt.xlabel('Jet genmatch hadron flavor')
         # plt.ylabel('Jets')
-        # hep.cms.label("Private Work", data = False, com = 14)
+        # hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
         # plt.savefig(outFolder+"/signal_b_hflav.pdf")
         # plt.savefig(outFolder+"/signal_b_hflav.png")
         # plt.cla()
@@ -83,7 +85,7 @@ def createDataset(filetag, flavs, not_reduce):
         #     plt.hist(flat_jettauflav, bins=np.arange(0, 10, 1), edgecolor='black')
         #     plt.xlabel('Jet tau flavor')
         #     plt.ylabel('Jets')
-        #     hep.cms.label("Private Work", data = False, com = 14)
+        #     hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
         #     plt.savefig(outFolder+"/signal_tau_tauflav.pdf")
         #     plt.savefig(outFolder+"/signal_tau_tauflav.png")
         #     plt.cla()
@@ -94,7 +96,7 @@ def createDataset(filetag, flavs, not_reduce):
         #     plt.hist(flat_jetgflav, bins=np.arange(0, 25, 1), edgecolor='black')
         #     plt.xlabel('Jet genmatch parton flavor')
         #     plt.ylabel('Jets')
-        #     hep.cms.label("Private Work", data = False, com = 14)
+        #     hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
         #     plt.savefig(outFolder+"/signal_gluon_pflav.pdf")
         #     plt.savefig(outFolder+"/signal_gluon_pflav.png")
         #     plt.cla()
@@ -104,7 +106,7 @@ def createDataset(filetag, flavs, not_reduce):
         #     plt.hist(flat_jetgflav, bins=np.arange(0, 25, 1), edgecolor='black')
         #     plt.xlabel('Jet genmatch parton flavor')
         #     plt.ylabel('Jets')
-        #     hep.cms.label("Private Work", data = False, com = 14)
+        #     hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
         #     plt.savefig(outFolder+"/signal_gluon_hflav.pdf")
         #     plt.savefig(outFolder+"/signal_gluon_hflav.png")
         #     plt.cla()
@@ -146,7 +148,7 @@ def createDataset(filetag, flavs, not_reduce):
         #     plt.xlabel(f"N of {obj}")
         #     plt.legend()
         #     # plt.grid()
-        #     hep.cms.label("Private Work", data = False, com = 14)
+        #     hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
         #     plt.savefig(outFolder+"/"+obj+".pdf")
         #     plt.savefig(outFolder+"/"+obj+".png")
         #     plt.cla()
@@ -180,7 +182,7 @@ def createDataset(filetag, flavs, not_reduce):
         #     plt.xlabel(f"{obj}")
         #     plt.legend()
         #     # plt.grid()
-        #     hep.cms.label("Private Work", data = False, com = 14)
+        #     hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
         #     plt.savefig(outFolder+"/"+obj+".pdf")
         #     plt.savefig(outFolder+"/"+obj+".png")
         #     plt.cla()
@@ -203,7 +205,7 @@ def createDataset(filetag, flavs, not_reduce):
         # )
         # hist.fill(data['jet_genmatch_pt'], data['jet_ptUncorr_div_ptGen'])
         # hep.hist2dplot(hist, labels = False, cbar = False)
-        # hep.cms.label("Private Work", data = False, com = 14)
+        # hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
         # plt.savefig(outFolder+"/"+"responseUncorr"+".pdf")
         # plt.savefig(outFolder+"/"+"responseUncorr"+".png")
         # plt.cla()
@@ -233,13 +235,27 @@ def createDataset(filetag, flavs, not_reduce):
 
             ]
         # A slightly reduced set
-        pfcand_fields_baseline = [
-            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"
+        pfcand_fields_baselineHW = [
+            'pt','eta','phi','charge','id', 'z0', 'dxy',
+            ]
+        # a custom set
+        pfcand_fields_baselineEmulator = [
+            'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
             ]
         # a custom set
         pfcand_fields_ext1 = [
             'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'puppiweight',
+            'pt_log','eta','phi',
+
+            'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+
+            'emid','quality','tkquality',
+            'track_valid','track_rinv',
+            'track_phizero','track_tanl','track_z0','z0',
+            'track_d0','track_chi2rphi','track_chi2rz',
+            'track_bendchi2','track_hitpattern','track_nstubs',
+            # 'track_mvaquality',
+            'track_mvaother',
 
             ]
         # let's take all HW values
@@ -280,7 +296,7 @@ def createDataset(filetag, flavs, not_reduce):
         #     plt.xlabel(name)
         #     plt.ylabel("PF Candidates / bin (normalized to 1)")
         #     plt.legend()
-        #     hep.cms.label("Private Work", data = False, com = 14)
+        #     hep.cms.label("Private Work", data = False, rlabel = "14 TeV (PU 200)")
         #     plt.savefig(outFolder+"/"+name+".pdf")
         #     plt.savefig(outFolder+"/"+name+".png")
         #     plt.cla()
@@ -289,7 +305,8 @@ def createDataset(filetag, flavs, not_reduce):
         # gc.collect()
 
         # Create datasets for training
-        classes_baseline, var_names_baseline, x_baseline, y_baseline, x_global_baseline, y_target_baseline = createAndSaveTrainingData(data_split, pfcand_fields_baseline)
+        classes_baselineHW, var_names_baselineHW, x_baselineHW, y_baselineHW, x_global_baselineHW, y_target_baselineHW = createAndSaveTrainingData(data_split, pfcand_fields_baselineHW)
+        classes_baselineEmulator, var_names_baselineEmulator, x_baselineEmulator, y_baselineEmulator, x_global_baselineEmulator, y_target_baselineEmulator = createAndSaveTrainingData(data_split, pfcand_fields_baselineEmulator)
         classes_ext1, var_names_ext1, x_ext1, y_ext1, x_global_ext1, y_target_ext1 = createAndSaveTrainingData(data_split, pfcand_fields_ext1)
         classes_ext2, var_names_ext2, x_ext2, y_ext2, x_global_ext2, y_target_ext2 = createAndSaveTrainingData(data_split, pfcand_fields_ext2)
         classes_all, var_names_all, x_all, y_all, x_global_all, y_target_all = createAndSaveTrainingData(data_split, pfcand_fields_all)
@@ -301,58 +318,108 @@ def createDataset(filetag, flavs, not_reduce):
         # print(y_all.shape)
         # print(len(x_global_all))
 
-        X_train_baseline, X_test_baseline, Y_train_baseline, Y_test_baseline, x_global_train_baseline, x_global_test_baseline, y_target_train_baseline, y_target_test_baseline = splitAndShuffle(x_baseline, y_baseline, x_global_baseline, y_target_baseline, len(pfcand_fields_baseline), shuffleConst = False)
+        X_train_baselineHW, X_test_baselineHW, Y_train_baselineHW, Y_test_baselineHW, x_global_train_baselineHW, x_global_test_baselineHW, y_target_train_baselineHW, y_target_test_baselineHW = splitAndShuffle(x_baselineHW, y_baselineHW, x_global_baselineHW, y_target_baselineHW, len(pfcand_fields_baselineHW), shuffleConst = False)
+        X_train_baselineEmulator, X_test_baselineEmulator, Y_train_baselineEmulator, Y_test_baselineEmulator, x_global_train_baselineEmulator, x_global_test_baselineEmulator, y_target_train_baselineEmulator, y_target_test_baselineEmulator = splitAndShuffle(x_baselineEmulator, y_baselineEmulator, x_global_baselineEmulator, y_target_baselineEmulator, len(pfcand_fields_baselineEmulator), shuffleConst = False)
         X_train_ext1, X_test_ext1, Y_train_ext1, Y_test_ext1, x_global_train_ext1, x_global_test_ext1, y_target_train_ext1, y_target_test_ext1  = splitAndShuffle(x_ext1, y_ext1, x_global_ext1, y_target_ext1, len(pfcand_fields_ext1), shuffleConst = False)
         X_train_ext2, X_test_ext2, Y_train_ext2, Y_test_ext2, x_global_train_ext2, x_global_test_ext2, y_target_train_ext2, y_target_test_ext2  = splitAndShuffle(x_ext2, y_ext2, x_global_ext2, y_target_ext2, len(pfcand_fields_ext2), shuffleConst = False)
         X_train_all, X_test_all, Y_train_all, Y_test_all, x_global_train_all, x_global_test_all, y_target_train_all, y_target_test_all  = splitAndShuffle(x_all, y_all, x_global_all, y_target_all, len(pfcand_fields_all), shuffleConst = False)
 
         # -----------------------------------------
-        # Save baseline
-        x_b_baseline = np.reshape(classes_baseline["b"]["x"],[-1, nconstit, len(pfcand_fields_baseline)])
+        # Save baselineHW
+        x_b_baselineHW = np.reshape(classes_baselineHW["b"]["x"],[-1, nconstit, len(pfcand_fields_baselineHW)])
         if splitTau:
-            x_tau_baseline = np.reshape(classes_baseline["tau"]["x"],[-1, nconstit, len(pfcand_fields_baseline)])
+            x_tau_baselineHW = np.reshape(classes_baselineHW["tau"]["x"],[-1, nconstit, len(pfcand_fields_baselineHW)])
         if splitGluon:
-            x_gluon_baseline = np.reshape(classes_baseline["gluon"]["x"],[-1, nconstit, len(pfcand_fields_baseline)])
+            x_gluon_baselineHW = np.reshape(classes_baselineHW["gluon"]["x"],[-1, nconstit, len(pfcand_fields_baselineHW)])
         if splitCharm:
-            x_charm_baseline = np.reshape(classes_baseline["charm"]["x"],[-1, nconstit, len(pfcand_fields_baseline)])
-        x_bkg_baseline = np.reshape(classes_baseline["bkg"]["x"],[-1, nconstit, len(pfcand_fields_baseline)])
+            x_charm_baselineHW = np.reshape(classes_baselineHW["charm"]["x"],[-1, nconstit, len(pfcand_fields_baselineHW)])
+        x_bkg_baselineHW = np.reshape(classes_baselineHW["bkg"]["x"],[-1, nconstit, len(pfcand_fields_baselineHW)])
 
         # Save Data to Parket files
 
         print ("SAVE TO FILE")
-        print (len(X_test_baseline))
-        print (len(Y_test_baseline))
-        print (len(x_global_test_baseline))
-        print (len(y_target_test_baseline))
+        print (len(X_test_baselineHW))
+        print (len(Y_test_baselineHW))
+        print (len(x_global_test_baselineHW))
+        print (len(y_target_test_baselineHW))
 
-        print (len(X_train_baseline))
-        print (len(Y_train_baseline))
-        print (len(x_global_train_baseline))
-        print (len(y_target_train_baseline))
+        print (len(X_train_baselineHW))
+        print (len(Y_train_baselineHW))
+        print (len(x_global_train_baselineHW))
+        print (len(y_target_train_baselineHW))
 
-        ak.to_parquet(X_train_baseline, outFolder+"/X_baseline_train_"+str(chunk)+".parquet")
-        ak.to_parquet(Y_train_baseline, outFolder+"/Y_baseline_train_"+str(chunk)+".parquet")
-        ak.to_parquet(X_test_baseline, outFolder+"/X_baseline_test_"+str(chunk)+".parquet")
-        ak.to_parquet(Y_test_baseline, outFolder+"/Y_baseline_test_"+str(chunk)+".parquet")
-        ak.to_parquet(x_global_train_baseline, outFolder+"/X_global_baseline_train_"+str(chunk)+".parquet")
-        ak.to_parquet(x_global_test_baseline, outFolder+"/X_global_baseline_test_"+str(chunk)+".parquet")
-        ak.to_parquet(y_target_train_baseline, outFolder+"/Y_target_baseline_train_"+str(chunk)+".parquet")
-        ak.to_parquet(y_target_test_baseline, outFolder+"/Y_target_baseline_test_"+str(chunk)+".parquet")
-        ak.to_parquet(x_b_baseline, outFolder+"/X_baseline_b_"+str(chunk)+".parquet")
+        ak.to_parquet(X_train_baselineHW, outFolder+"/X_baselineHW_train_"+str(chunk)+".parquet")
+        ak.to_parquet(Y_train_baselineHW, outFolder+"/Y_baselineHW_train_"+str(chunk)+".parquet")
+        ak.to_parquet(X_test_baselineHW, outFolder+"/X_baselineHW_test_"+str(chunk)+".parquet")
+        ak.to_parquet(Y_test_baselineHW, outFolder+"/Y_baselineHW_test_"+str(chunk)+".parquet")
+        ak.to_parquet(x_global_train_baselineHW, outFolder+"/X_global_baselineHW_train_"+str(chunk)+".parquet")
+        ak.to_parquet(x_global_test_baselineHW, outFolder+"/X_global_baselineHW_test_"+str(chunk)+".parquet")
+        ak.to_parquet(y_target_train_baselineHW, outFolder+"/Y_target_baselineHW_train_"+str(chunk)+".parquet")
+        ak.to_parquet(y_target_test_baselineHW, outFolder+"/Y_target_baselineHW_test_"+str(chunk)+".parquet")
+        ak.to_parquet(x_b_baselineHW, outFolder+"/X_baselineHW_b_"+str(chunk)+".parquet")
         if splitTau:
-            ak.to_parquet(x_tau_baseline, outFolder+"/X_baseline_tau_"+str(chunk)+".parquet")
+            ak.to_parquet(x_tau_baselineHW, outFolder+"/X_baselineHW_tau_"+str(chunk)+".parquet")
         if splitGluon:
-            ak.to_parquet(x_gluon_baseline, outFolder+"/X_baseline_gluon_"+str(chunk)+".parquet")
+            ak.to_parquet(x_gluon_baselineHW, outFolder+"/X_baselineHW_gluon_"+str(chunk)+".parquet")
         if splitCharm:
-            ak.to_parquet(x_charm_baseline, outFolder+"/X_baseline_charm_"+str(chunk)+".parquet")
-        ak.to_parquet(x_bkg_baseline, outFolder+"/X_baseline_bkg_"+str(chunk)+".parquet")
+            ak.to_parquet(x_charm_baselineHW, outFolder+"/X_baselineHW_charm_"+str(chunk)+".parquet")
+        ak.to_parquet(x_bkg_baselineHW, outFolder+"/X_baselineHW_bkg_"+str(chunk)+".parquet")
 
         # Save data in npy for HLS4ML
-        # np.save(outFolder+"/X_test_baseline_btag_nconst_{}".format(nconstit), X_test_baseline)
-        # np.save(outFolder+"/Y_test_baseline_btag_nconst_{}".format(nconstit), Y_test_baseline)
+        # np.save(outFolder+"/X_test_baselineHW_btag_nconst_{}".format(nconstit), X_test_baselineHW)
+        # np.save(outFolder+"/Y_test_baselineHW_btag_nconst_{}".format(nconstit), Y_test_baselineHW)
         # -----------------------------------------
 
-        del X_train_baseline, Y_train_baseline, X_test_baseline, Y_test_baseline, x_b_baseline, x_tau_baseline, x_gluon_baseline, x_bkg_baseline
+        del X_train_baselineHW, Y_train_baselineHW, X_test_baselineHW, Y_test_baselineHW, x_b_baselineHW, x_tau_baselineHW, x_gluon_baselineHW, x_bkg_baselineHW
+        # gc.collect()
+
+        # -----------------------------------------
+        # Save baselineEmulator
+        x_b_baselineEmulator = np.reshape(classes_baselineEmulator["b"]["x"],[-1, nconstit, len(pfcand_fields_baselineEmulator)])
+        if splitTau:
+            x_tau_baselineEmulator = np.reshape(classes_baselineEmulator["tau"]["x"],[-1, nconstit, len(pfcand_fields_baselineEmulator)])
+        if splitGluon:
+            x_gluon_baselineEmulator = np.reshape(classes_baselineEmulator["gluon"]["x"],[-1, nconstit, len(pfcand_fields_baselineEmulator)])
+        if splitCharm:
+            x_charm_baselineEmulator = np.reshape(classes_baselineEmulator["charm"]["x"],[-1, nconstit, len(pfcand_fields_baselineEmulator)])
+        x_bkg_baselineEmulator = np.reshape(classes_baselineEmulator["bkg"]["x"],[-1, nconstit, len(pfcand_fields_baselineEmulator)])
+
+        # Save Data to Parket files
+
+        print ("SAVE TO FILE")
+        print (len(X_test_baselineEmulator))
+        print (len(Y_test_baselineEmulator))
+        print (len(x_global_test_baselineEmulator))
+        print (len(y_target_test_baselineEmulator))
+
+        print (len(X_train_baselineEmulator))
+        print (len(Y_train_baselineEmulator))
+        print (len(x_global_train_baselineEmulator))
+        print (len(y_target_train_baselineEmulator))
+
+        ak.to_parquet(X_train_baselineEmulator, outFolder+"/X_baselineEmulator_train_"+str(chunk)+".parquet")
+        ak.to_parquet(Y_train_baselineEmulator, outFolder+"/Y_baselineEmulator_train_"+str(chunk)+".parquet")
+        ak.to_parquet(X_test_baselineEmulator, outFolder+"/X_baselineEmulator_test_"+str(chunk)+".parquet")
+        ak.to_parquet(Y_test_baselineEmulator, outFolder+"/Y_baselineEmulator_test_"+str(chunk)+".parquet")
+        ak.to_parquet(x_global_train_baselineEmulator, outFolder+"/X_global_baselineEmulator_train_"+str(chunk)+".parquet")
+        ak.to_parquet(x_global_test_baselineEmulator, outFolder+"/X_global_baselineEmulator_test_"+str(chunk)+".parquet")
+        ak.to_parquet(y_target_train_baselineEmulator, outFolder+"/Y_target_baselineEmulator_train_"+str(chunk)+".parquet")
+        ak.to_parquet(y_target_test_baselineEmulator, outFolder+"/Y_target_baselineEmulator_test_"+str(chunk)+".parquet")
+        ak.to_parquet(x_b_baselineEmulator, outFolder+"/X_baselineEmulator_b_"+str(chunk)+".parquet")
+        if splitTau:
+            ak.to_parquet(x_tau_baselineEmulator, outFolder+"/X_baselineEmulator_tau_"+str(chunk)+".parquet")
+        if splitGluon:
+            ak.to_parquet(x_gluon_baselineEmulator, outFolder+"/X_baselineEmulator_gluon_"+str(chunk)+".parquet")
+        if splitCharm:
+            ak.to_parquet(x_charm_baselineEmulator, outFolder+"/X_baselineEmulator_charm_"+str(chunk)+".parquet")
+        ak.to_parquet(x_bkg_baselineEmulator, outFolder+"/X_baselineEmulator_bkg_"+str(chunk)+".parquet")
+
+        # Save data in npy for HLS4ML
+        # np.save(outFolder+"/X_test_baselineEmulator_btag_nconst_{}".format(nconstit), X_test_baselineEmulator)
+        # np.save(outFolder+"/Y_test_baselineEmulator_btag_nconst_{}".format(nconstit), Y_test_baselineEmulator)
+        # -----------------------------------------
+
+        del X_train_baselineEmulator, Y_train_baselineEmulator, X_test_baselineEmulator, Y_test_baselineEmulator, x_b_baselineEmulator, x_tau_baselineEmulator, x_gluon_baselineEmulator, x_bkg_baselineEmulator
         # gc.collect()
 
         # Save ext1

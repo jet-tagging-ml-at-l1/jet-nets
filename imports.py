@@ -34,3 +34,4 @@ else:
 
 # To disable GPU use
 tf.config.set_visible_devices([], 'GPU')
+plt.rcParams.update({'figure.max_open_warning': 0})

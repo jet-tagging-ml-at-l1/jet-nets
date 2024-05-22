@@ -129,6 +129,7 @@ def synthesize(
 
     # PATH = workdir + '/datasets_notreduced_chunked/' + filetag + "/" + tempflav + "/"
     PATH = workdir + '/datasets_13X_v9/' + filetag + "/" + tempflav + "/"
+    # PATH = workdir + '/datasets_13X_v9_leptons/' + filetag + "/" + tempflav + "/"
     outFolder = "outputSynthesis/"+outname+"/Training_" + timestamp + "/"
     if not os.path.exists(outFolder):
         os.makedirs(outFolder, exist_ok=True)
@@ -151,7 +152,7 @@ def synthesize(
     import random
     chunksmatching = random.sample(chunksmatching, 5)
 
-    filter = "/(jet)_(eta|eta_phys|phi|pt|pt_phys|pt_raw|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
+    filter = "/(jet)_(eta|eta_phys|phi|pt|pt_phys|pt_raw|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/label_taup/label_taum/label_muon/label_electron"
 
     print ("Loading data in all",len(chunksmatching),"chunks.")
 
@@ -345,6 +346,9 @@ def synthesize(
     config["LayerName"]["qActivationForPool"]["Precision"]["result"] = inputPrecision
     config["LayerName"]["qActivationForPool"]["Precision"] = inputPrecision
 
+    config["LayerName"]["output_class"]["Implementation"] = "latency"
+    config["LayerName"]["output_reg"]["Implementation"] = "latency"
+
     print ("Changed  config")
     print (config)
 
@@ -361,10 +365,10 @@ def synthesize(
     layerNames = [layer.name for layer in model.layers]
 
 
-    if "qDense_phi1" in layerNames: config["LayerName"]["qDense_phi1"]["ReuseFactor"] = 3
-    if "qDense_phi2" in layerNames: config["LayerName"]["qDense_phi2"]["ReuseFactor"] = 4
-    if "qDense_phi3" in layerNames: config["LayerName"]["qDense_phi3"]["ReuseFactor"] = 4
-    if "qDense_phi4" in layerNames: config["LayerName"]["qDense_phi4"]["ReuseFactor"] = 4
+    # if "qDense_phi1" in layerNames: config["LayerName"]["qDense_phi1"]["ReuseFactor"] = 3
+    # if "qDense_phi2" in layerNames: config["LayerName"]["qDense_phi2"]["ReuseFactor"] = 4
+    # if "qDense_phi3" in layerNames: config["LayerName"]["qDense_phi3"]["ReuseFactor"] = 4
+    # if "qDense_phi4" in layerNames: config["LayerName"]["qDense_phi4"]["ReuseFactor"] = 4
 
         # config["LayerName"]["qDense_phi1"]["ConvImplementation"] = "Pointwise"
         # config["LayerName"]["qDense_phi2"]["ConvImplementation"] = "Pointwise"
@@ -392,6 +396,8 @@ def synthesize(
         # part="xcvu13p-flga2577-2-e", #real one
         part="xcu250-figd2104-2L-e",
         clock_period=2.5,
+        # part="xcvu13p-flga2577-2-e",
+        # clock_period=2.777777778,
     )
 
     print("Compiling the Model !")

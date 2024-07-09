@@ -1,3 +1,13 @@
+#Custom things:
+datasets_*
+error*
+out/
+out_*
+outputPlots*
+matchingPlots*
+outputSynthesis*
+trainings*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

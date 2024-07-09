@@ -42,6 +42,8 @@ from joblib import Parallel, delayed
 import time
 # import shutil
 import argparse
+from hls_node_edge_projection import *
+
 
 __tf_profiling_enabled__ = True
 __torch_profiling_enabled__ = True
@@ -263,20 +265,20 @@ def synthesize(
     model = tf.keras.models.load_model(
         trainingBasePath+""+modelpath+"/"+modelname+'.h5',
         custom_objects={
-            "AAtt": AAtt,
+            # "AAtt": AAtt,
             "QDense": QDense,
             "QActivation": QActivation,
             "quantized_bits": quantized_bits,
             "ternary": ternary,
             "binary": binary,
-            "QBatchNormalization": QBatchNormalization
+            # "QBatchNormalization": QBatchNormalization
         },
     )
     model.summary()
     print("ncands: ", ncands)
     print("nfeatures: ", nfeatures)
 
-    # register_custom_layer()
+    register_custom_layer()
     # remove unncessary linear layers by explicitly specifying layer names
     hls4ml.model.optimizer.get_optimizer("output_rounding_saturation_mode").configure(
         layers=[
@@ -329,13 +331,8 @@ def synthesize(
         else:
             config["LayerName"][layer.name]["Trace"] = trace
 
-        for layerName in config["LayerName"]:
-            config["LayerName"][layerName]["Trace"] = True
-
-    # config["LayerName"]["qDense_phi1"]["Precision"] = inputPrecision
-    # config["LayerName"]["qDense_phi1"]["Precision"]["result"] = inputPrecision
-    # config["LayerName"]["qDense_phi1"]["Precision"]["accum"] = inputPrecision
-    # config["LayerName"]["qDense_phi1"]["Precision"]["accum"] = inputPrecision
+    for layerName in config["LayerName"]:
+        config["LayerName"][layerName]["Trace"] = True
 
     config["LayerName"]["output_class"]["Precision"]["result"] = inputPrecision
     config["LayerName"]["output_reg"]["Precision"]["result"] = inputPrecision
@@ -360,15 +357,16 @@ def synthesize(
         if "qDense_phi" in layer.name:
             print ("Add custom pointwise implementation for layer", layer.name)
             config["LayerName"][layer.name]["ConvImplementation"] = "Pointwise"
+            config["LayerName"][layer.name]["Strategy"] = "Latency"
 
 
     layerNames = [layer.name for layer in model.layers]
 
 
-    # if "qDense_phi1" in layerNames: config["LayerName"]["qDense_phi1"]["ReuseFactor"] = 3
-    # if "qDense_phi2" in layerNames: config["LayerName"]["qDense_phi2"]["ReuseFactor"] = 4
-    # if "qDense_phi3" in layerNames: config["LayerName"]["qDense_phi3"]["ReuseFactor"] = 4
-    # if "qDense_phi4" in layerNames: config["LayerName"]["qDense_phi4"]["ReuseFactor"] = 4
+    if "qDense_phi1" in layerNames: config["LayerName"]["qDense_phi1"]["ReuseFactor"] = 2
+    if "qDense_phi2" in layerNames: config["LayerName"]["qDense_phi2"]["ReuseFactor"] = 2
+    # if "qDense_phi3" in layerNames: config["LayerName"]["qDense_phi3"]["ReuseFactor"] = 6
+    # if "qDense_phi4" in layerNames: config["LayerName"]["qDense_phi4"]["ReuseFactor"] = 6
 
         # config["LayerName"]["qDense_phi1"]["ConvImplementation"] = "Pointwise"
         # config["LayerName"]["qDense_phi2"]["ConvImplementation"] = "Pointwise"
@@ -395,9 +393,9 @@ def synthesize(
 #        part="xcvu9p-flgb2104-2l-e",
         # part="xcvu13p-flga2577-2-e", #real one
         part="xcu250-figd2104-2L-e",
-        clock_period=2.5,
+        # clock_period=2.5,
         # part="xcvu13p-flga2577-2-e",
-        # clock_period=2.777777778,
+        clock_period=2.777777778,
     )
 
     print("Compiling the Model !")

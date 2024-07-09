@@ -60,7 +60,8 @@ def readDataFromFile(filename, filter = "jet_*", applyBaseCut = True):
         how = "zip")
     if applyBaseCut:
         # jet_ptmin =   (data['jet_pt'] > 15.) & (np.abs(data['jet_eta']) < 2.4)
-        jet_ptmin =   (data['jet_pt_phys'] > 15.) & (np.abs(data['jet_eta_phys']) < 2.4) & (data['jet_genmatch_pt'] > 0)
+        # jet_ptmin =   (data['jet_pt_phys'] > 15.) & (np.abs(data['jet_eta_phys']) < 2.4) & (data['jet_genmatch_pt'] > 0)
+        jet_ptmin =   (data['jet_pt_phys'] > 15.) & (np.abs(data['jet_eta_phys']) < 2.4) & (data['jet_genmatch_pt'] > 0) & (data['jet_reject'] < 1)
         data = data[jet_ptmin]
     return data
 
@@ -75,14 +76,30 @@ def splitFlavors(data, splitTau = True, splitGluon = True, splitCharm = True):
     # data['label_b'] = (data['jet_genmatch_pt'] > -1) + (data['jet_muflav'] == 0) + (data['jet_tauflav'] == 0) + (data['jet_elflav'] == 0) + (data['jet_genmatch_hflav'] == 5)
     data['label_b'] = condition_b
     if splitTau:
-        condition_tau = (
+        # condition_tau = (
+        #     (data['jet_genmatch_pt'] > 0) &
+        #     (data['jet_muflav'] == 0) &
+        #     (data['jet_tauflav'] == 1) &
+        #     (data['jet_elflav'] == 0)
+        # )
+        # data['label_tau'] = (data['jet_genmatch_pt'] > -1) + (data['jet_muflav'] == 0) + (data['jet_tauflav'] == 1) + (data['jet_elflav'] == 0)
+        # data['label_tau'] = condition_tau
+        condition_taup = (
             (data['jet_genmatch_pt'] > 0) &
             (data['jet_muflav'] == 0) &
             (data['jet_tauflav'] == 1) &
+            (data['jet_taucharge'] > 0) &
             (data['jet_elflav'] == 0)
         )
-        # data['label_tau'] = (data['jet_genmatch_pt'] > -1) + (data['jet_muflav'] == 0) + (data['jet_tauflav'] == 1) + (data['jet_elflav'] == 0)
-        data['label_tau'] = condition_tau
+        data['label_taup'] = condition_taup
+        condition_taum = (
+            (data['jet_genmatch_pt'] > 0) &
+            (data['jet_muflav'] == 0) &
+            (data['jet_tauflav'] == 1) &
+            (data['jet_taucharge'] < 0) &
+            (data['jet_elflav'] == 0)
+        )
+        data['label_taum'] = condition_taum
     if splitGluon:
         condition_gluon = (
             (data['jet_genmatch_pt'] > 0) &
@@ -116,15 +133,35 @@ def splitFlavors(data, splitTau = True, splitGluon = True, splitCharm = True):
         )
     data['label_uds'] = condition_uds
 
-    data['target_pt'] = np.clip(((data["label_b"]) | (data["label_c"]) | (data["label_uds"]) | (data["label_g"]))*ak.nan_to_num(data["jet_genmatch_pt"]/data["jet_pt_phys"],nan=0,posinf=0,neginf=0)+((data["label_tau"]))*ak.nan_to_num((data["jet_genmatch_lep_vis_pt"]/data["jet_pt_phys"]),nan=0,posinf=0,neginf=0),0.3,2)
+    condition_muon = (
+            (data['jet_genmatch_pt'] > 0) &
+            (data['jet_muflav'] == 1) &
+            (data['jet_tauflav'] == 0) &
+            (data['jet_elflav'] == 0)
+        )
+    data['label_muon'] = condition_muon
+
+    condition_electron = (
+            (data['jet_genmatch_pt'] > 0) &
+            (data['jet_muflav'] == 0) &
+            (data['jet_tauflav'] == 0) &
+            (data['jet_elflav'] == 1)
+        )
+    data['label_electron'] = condition_electron
+
+    # data['target_pt'] = np.clip(((data["label_b"]) | (data["label_c"]) | (data["label_uds"]) | (data["label_g"]))*ak.nan_to_num(data["jet_genmatch_pt"]/data["jet_pt_phys"],nan=0,posinf=0,neginf=0)+((data["label_tau"]) | (data["label_muon"]) | (data["label_electron"]))*ak.nan_to_num((data["jet_genmatch_lep_vis_pt"]/data["jet_pt_phys"]),nan=0,posinf=0,neginf=0),0.3,2)
+    # data['target_pt'] = np.clip(((data["label_b"]) | (data["label_c"]) | (data["label_uds"]) | (data["label_g"]))*ak.nan_to_num(data["jet_genmatch_pt"]/data["jet_pt_phys"],nan=0,posinf=0,neginf=0)+((data["label_tau"]) | (data["label_taup"]) | (data["label_taum"]) | (data["label_muon"]) | (data["label_electron"]))*ak.nan_to_num((data["jet_genmatch_lep_vis_pt"]/data["jet_pt_phys"]),nan=0,posinf=0,neginf=0),0.3,2)
+    data['target_pt'] = np.clip(((data["label_b"]) | (data["label_c"]) | (data["label_uds"]) | (data["label_g"]))*ak.nan_to_num(data["jet_genmatch_pt"]/data["jet_pt_phys"],nan=0,posinf=0,neginf=0)+((data["label_taup"]) | (data["label_taum"]) | (data["label_muon"]) | (data["label_electron"]))*ak.nan_to_num((data["jet_genmatch_lep_vis_pt"]/data["jet_pt_phys"]),nan=0,posinf=0,neginf=0),0.3,2)
     print(data['target_pt'])
 
     data_b = data[(condition_b)]
     # data['label_b'] = (data[(condition_b)] > 0)
     if splitTau:
-        data_tau = data[(condition_tau)]
-    else:
-        data_tau = None
+        # data_tau = data[(condition_tau)]
+        data_taup = data[(condition_taup)]
+        data_taum = data[(condition_taum)]
+    # else:
+        # data_tau = None
     if splitGluon:
         data_gluon = data[(condition_gluon)]
     else:
@@ -133,18 +170,21 @@ def splitFlavors(data, splitTau = True, splitGluon = True, splitCharm = True):
         data_charm = data[(condition_charm)]
     else:
         data_charm = None
+    
+    data_muon = data[(condition_muon)]
+    data_electron = data[(condition_electron)]
 
     # Definition of background (non-b jets)
-    if splitTau and splitGluon and splitCharm:
-        condition_bkg = (~condition_b) & (~condition_tau) & (~condition_gluon) & (~condition_charm)
-    elif splitTau and splitGluon:
-        condition_bkg = (~condition_b) & (~condition_tau) & (~condition_gluon)
-    elif splitTau:
-        condition_bkg = (~condition_b) & (~condition_tau)
-    elif splitGluon:
-        condition_bkg = (~condition_b) & (~condition_gluon)
-    else:
-        condition_bkg = (~condition_b)
+    # if splitTau and splitGluon and splitCharm:
+    #     condition_bkg = (~condition_b) & (~condition_tau) & (~condition_gluon) & (~condition_charm)
+    # elif splitTau and splitGluon:
+    #     condition_bkg = (~condition_b) & (~condition_tau) & (~condition_gluon)
+    # elif splitTau:
+    #     condition_bkg = (~condition_b) & (~condition_tau)
+    # elif splitGluon:
+    #     condition_bkg = (~condition_b) & (~condition_gluon)
+    # else:
+    #     condition_bkg = (~condition_b)
 
     # data_bkg = data[condition_bkg]
     data_bkg = data[condition_uds]
@@ -156,8 +196,11 @@ def splitFlavors(data, splitTau = True, splitGluon = True, splitCharm = True):
     print("Length of data_b:", len(data_b))
     sum = sum + len(data_b)
     if splitTau:
-        print("Length of data_tau:", len(data_tau))
-        sum = sum + len(data_tau)
+        # print("Length of data_tau:", len(data_tau))
+        print("Length of data_taup:", len(data_taup))
+        print("Length of data_taum:", len(data_taum))
+        sum = sum + len(data_taup)
+        sum = sum + len(data_taum)
     if splitGluon:
         print("Length of data_gluon:", len(data_gluon))
         sum = sum + len(data_gluon)
@@ -166,12 +209,17 @@ def splitFlavors(data, splitTau = True, splitGluon = True, splitCharm = True):
         sum = sum + len(data_charm)
     print("Length of data_bkg:", len(data_bkg))
     sum = sum + len(data_bkg)
+    print("Length of data_muon:", len(data_muon))
+    sum = sum + len(data_muon)
+    print("Length of data_electron:", len(data_electron))
+    sum = sum + len(data_electron)
     print("Sum:", sum)
 
     if not len(data) == sum:
         print ("ERROR: Data splitting does not match!!")
 
-    return {"b": data_b, "tau": data_tau, "gluon": data_gluon, "charm": data_charm, "bkg": data_bkg}
+    # return {"b": data_b, "tau": data_tau, "gluon": data_gluon, "charm": data_charm, "bkg": data_bkg, "muon": data_muon, "electron": data_electron, "taup": data_taup, "taum": data_taum}
+    return {"b": data_b, "taup": data_taup, "taum": data_taum, "gluon": data_gluon, "charm": data_charm, "bkg": data_bkg, "muon": data_muon, "electron": data_electron}
 
 
 def reduceDatasetToMin(dataJson):

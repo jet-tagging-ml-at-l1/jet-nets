@@ -19,7 +19,7 @@ import numpy
 from histbook import *
 
 
-def shapPlot(shap_values, feature_names, class_names):
+def shapPlot(shap_values, feature_names, class_names, isMLP = False):
     # max_display = min(len(feature_names), 7)
     # def color(i):
     #     colors = ["r",'b','g','c','m','y']
@@ -80,9 +80,10 @@ def rms(array):
 # pfcand_fields_ext2 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
 #             'pt_log','eta','phi',]
 
+
 pfcand_fields_all = [
     'puppiweight','pt_rel','pt_rel_log',
-    'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+    'dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
     'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
     'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
     'pt_log','eta','phi',
@@ -92,46 +93,42 @@ pfcand_fields_all = [
     'track_phizero','track_tanl','track_z0','z0',
     'track_d0','track_chi2rphi','track_chi2rz',
     'track_bendchi2','track_hitpattern','track_nstubs',
-    # 'track_mvaquality',
     'track_mvaother',
+    'mass'
 
     ]
 # A slightly reduced set
 pfcand_fields_baselineHW = [
-    'pt','eta','phi','charge','id', 'z0', 'dxy',
+    'pt','eta','phi',
+    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
+    'z0',
     ]
 # a custom set
 pfcand_fields_baselineEmulator = [
-    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    'pt_rel','deta','dphi',
+    'pt_log','eta','phi',
+    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
+    'z0',
     ]
 # a custom set
 pfcand_fields_ext1 = [
-    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    'pt_rel','deta','dphi',
     'pt_log','eta','phi',
-
-    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-
-    'emid','quality','tkquality',
-    'track_valid','track_rinv',
-    'track_phizero','track_tanl','track_z0','z0',
-    'track_d0','track_chi2rphi','track_chi2rz',
-    'track_bendchi2','track_hitpattern','track_nstubs',
-    # 'track_mvaquality',
-    'track_mvaother',
+    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
+    'z0',
+    'isfilled',
+    'puppiweight', 'emid', 'quality',
 
     ]
 # let's take all HW values
 pfcand_fields_ext2 = [
-    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-    'pt_log','eta','phi',
+    'pt_rel','deta','dphi',
+    'pt','eta','phi','mass',
+    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
+    'z0',
+    'isfilled',
+    'puppiweight', 'emid', 'quality',
 
-    'emid','quality','tkquality',
-    'track_valid','track_rinv',
-    'track_phizero','track_tanl','track_z0','z0',
-    'track_d0','track_chi2rphi','track_chi2rz',
-    'track_bendchi2','track_hitpattern','track_nstubs',
-    # 'track_mvaquality',
-    'track_mvaother',
     ]
 
 
@@ -168,7 +165,10 @@ def doPlots(
     # PATH = workdir + '/datasets_notreduced_chunked/' + filetag + "/" + tempflav + "/"
     # PATH = workdir + '/datasets_notreduced_chunked_13X_v9/' + filetag + "/" + tempflav + "/"
     # PATH = workdir + '/datasets_13X_v9/' + filetag + "/" + tempflav + "/"
-    PATH = workdir + '/datasets_13X_v9_leptons/' + filetag + "/" + tempflav + "/"
+    # PATH = workdir + '/datasets_13X_v9_leptons/' + filetag + "/" + tempflav + "/"
+    # PATH = workdir + '/datasets_13X_v9_DucLeptons/' + filetag + "/" + tempflav + "/"
+    # PATH = workdir + '/datasets_13X_v9_DucLeptons2/' + filetag + "/" + tempflav + "/"
+    PATH_load = workdir + '/datasets_13X_v9_DucLeptons3/' + filetag + "/" + tempflav + "/"
     outFolder = "outputPlots/"+outname+"/Training_" + timestamp + "/"
     if not os.path.exists(outFolder):
         os.makedirs(outFolder, exist_ok=True)
@@ -184,9 +184,9 @@ def doPlots(
     elif inputSetTag == "all":
         feature_names = pfcand_fields_all
 
-    chunksmatching = glob.glob(PATH+"X_"+inputSetTag+"_test*.parquet")
-    print (PATH+"X_"+inputSetTag+"_test*.parquet")
-    chunksmatching = [chunksm.replace(PATH+"X_"+inputSetTag+"_test","").replace(".parquet","").replace("_","") for chunksm in chunksmatching]
+    chunksmatching = glob.glob(PATH_load+"X_"+inputSetTag+"_test*.parquet")
+    print (PATH_load+"X_"+inputSetTag+"_test*.parquet")
+    chunksmatching = [chunksm.replace(PATH_load+"X_"+inputSetTag+"_test","").replace(".parquet","").replace("_","") for chunksm in chunksmatching]
 
     # chunksmatching = chunksmatching[:3]
     if test:
@@ -203,23 +203,31 @@ def doPlots(
     X_test_global = None
     Y_test = None
     x_b = None
+    x_b_global = None
     x_taup = None
+    x_taup_global = None
     x_taum = None
+    x_taum_global = None
     x_bkg = None
+    x_bkg_global = None
     x_gluon = None
+    x_gluon_global = None
     x_charm = None
+    x_charm_global = None
     x_muon = None
+    x_muon_global = None
     x_electron = None
+    x_electron_global = None
 
     for c in chunksmatching:
         if X_test is None:
-            X_test = ak.from_parquet(PATH+"X_"+inputSetTag+"_test_"+c+".parquet")
-            X_test_global = ak.from_parquet(PATH+"X_global_"+inputSetTag+"_test_"+c+".parquet")
-            Y_test = ak.from_parquet(PATH+"Y_"+inputSetTag+"_test_"+c+".parquet")
+            X_test = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_test_"+c+".parquet")
+            X_test_global = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_test_"+c+".parquet")
+            Y_test = ak.from_parquet(PATH_load+"Y_"+inputSetTag+"_test_"+c+".parquet")
         else:
-            X_test =ak.concatenate((X_test, ak.from_parquet(PATH+"X_"+inputSetTag+"_test_"+c+".parquet")))
-            X_test_global =ak.concatenate((X_test_global, ak.from_parquet(PATH+"X_global_"+inputSetTag+"_test_"+c+".parquet")))
-            Y_test =ak.concatenate((Y_test, ak.from_parquet(PATH+"Y_"+inputSetTag+"_test_"+c+".parquet")))
+            X_test =ak.concatenate((X_test, ak.from_parquet(PATH_load+"X_"+inputSetTag+"_test_"+c+".parquet")))
+            X_test_global =ak.concatenate((X_test_global, ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_test_"+c+".parquet")))
+            Y_test =ak.concatenate((Y_test, ak.from_parquet(PATH_load+"Y_"+inputSetTag+"_test_"+c+".parquet")))
 
         # if x_b is None:
         #     x_b = ak.from_parquet(PATH+"X_"+inputSetTag+"_b_"+c+".parquet")
@@ -261,69 +269,87 @@ def doPlots(
         #     if len(x_electron_) > 0:
         #         x_electron =ak.concatenate((x_electron, x_electron_))
 
-        x_b_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_b_"+c+".parquet")
+        x_b_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_b_"+c+".parquet")
+        x_b_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_b_"+c+".parquet")
         if len(x_b_) > 0:
             if x_b is None:
                 x_b = x_b_
+                x_b_global = x_b_global_
             else:
                 x_b =ak.concatenate((x_b, x_b_))
+                x_b_global =ak.concatenate((x_b_global, x_b_global_))
 
-        x_bkg_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_bkg_"+c+".parquet")
+        x_bkg_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_bkg_"+c+".parquet")
+        x_bkg_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_bkg_"+c+".parquet")
         if len(x_bkg_) > 0:
             if x_bkg is None:
                 x_bkg = x_bkg_
+                x_bkg_global = x_bkg_global_
             else:
                 x_bkg =ak.concatenate((x_bkg, x_bkg_))
+                x_bkg_global =ak.concatenate((x_bkg_global, x_bkg_global_))
 
         if splitTau:
-            # x_tau_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_tau_"+c+".parquet")
-            # if len(x_tau_) > 0:
-            #     if x_tau is None:
-            #         x_tau = x_tau_
-            #     else:
-            #         x_tau =ak.concatenate((x_tau, x_tau_))
-            x_taup_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taup_"+c+".parquet")
+            x_taup_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_taup_"+c+".parquet")
+            x_taup_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_taup_"+c+".parquet")
             if len(x_taup_) > 0:
                 if x_taup is None:
                     x_taup = x_taup_
+                    x_taup_global = x_taup_global_
                 else:
                     x_taup =ak.concatenate((x_taup, x_taup_))
-            x_taum_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taum_"+c+".parquet")
+                    x_taup_global =ak.concatenate((x_taup_global, x_taup_global_))
+            x_taum_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_taum_"+c+".parquet")
+            x_taum_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_taum_"+c+".parquet")
             if len(x_taum_) > 0:
                 if x_taum is None:
                     x_taum = x_taum_
+                    x_taum_global = x_taum_global_
                 else:
                     x_taum =ak.concatenate((x_taum, x_taum_))
+                    x_taum_global =ak.concatenate((x_taum_global, x_taum_global_))
 
         if splitGluon:
-            x_gluon_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_gluon_"+c+".parquet")
+            x_gluon_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_gluon_"+c+".parquet")
+            x_gluon_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_gluon_"+c+".parquet")
             if len(x_gluon_) > 0:
                 if x_gluon is None:
                     x_gluon = x_gluon_
+                    x_gluon_global = x_gluon_global_
                 else:
                     x_charm =ak.concatenate((x_gluon, x_gluon_))
+                    x_charm_global =ak.concatenate((x_gluon_global, x_gluon_global_))
 
         if splitCharm:
-            x_charm_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_charm_"+c+".parquet")
+            x_charm_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_charm_"+c+".parquet")
+            x_charm_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_charm_"+c+".parquet")
             if len(x_charm_) > 0:
                 if x_charm is None:
                     x_charm = x_charm_
+                    x_charm_global = x_charm_global_
                 else:
                     x_charm =ak.concatenate((x_charm, x_charm_))
+                    x_charm_global =ak.concatenate((x_charm_global, x_charm_global_))
         
-        x_muon_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_muon_"+c+".parquet")
+        x_muon_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_muon_"+c+".parquet")
+        x_muon_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_muon_"+c+".parquet")
         if len(x_muon_) > 0:
             if x_muon is None:
                 x_muon = x_muon_
+                x_muon_global = x_muon_global_
             else:
                 x_muon =ak.concatenate((x_muon, x_muon_))
+                x_muon_global =ak.concatenate((x_muon_global, x_muon_global_))
 
-        x_electron_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_electron_"+c+".parquet")
+        x_electron_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_electron_"+c+".parquet")
+        x_electron_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_electron_"+c+".parquet")
         if len(x_electron_) > 0:
             if x_electron is None:
                 x_electron = x_electron_
+                x_electron_global = x_electron_global_
             else:
                 x_electron =ak.concatenate((x_electron, x_electron_))
+                x_electron_global =ak.concatenate((x_electron_global, x_electron_global_))
 
     # print (X_test_global)
     # print (X_test_global.fields)
@@ -343,6 +369,8 @@ def doPlots(
     X_test = ak.to_numpy(X_test)
     Y_test = ak.to_numpy(Y_test)
 
+    modelArchName = modelname
+
     if modelname == "MLP":
         # pdb.set_trace()
         # X_train_val = np.reshape(X_train_val, (X_train_val.shape[0],X_train_val.shape[1]*X_train_val.shape[2]))
@@ -358,6 +386,29 @@ def doPlots(
             x_charm = np.reshape(x_charm, (x_charm.shape[0],x_charm.shape[1]*x_charm.shape[2]))
         x_muon = np.reshape(x_muon, (x_muon.shape[0],x_muon.shape[1]*x_muon.shape[2]))
         x_electron = np.reshape(x_electron, (x_electron.shape[0],x_electron.shape[1]*x_electron.shape[2]))
+
+        # append global features
+        # X_train_val_global = np.stack((X_train_global["jet_pt_raw"],X_train_global["jet_eta"],X_train_global["jet_phi"],X_train_global["jet_npfcand"]), axis=1)
+        X_b_global = np.stack((x_b_global["jet_pt_raw"],x_b_global["jet_eta"],x_b_global["jet_phi"],x_b_global["jet_npfcand"]), axis=1)
+        X_bkg_global = np.stack((x_bkg_global["jet_pt_raw"],x_bkg_global["jet_eta"],x_bkg_global["jet_phi"],x_bkg_global["jet_npfcand"]), axis=1)
+        X_taup_global = np.stack((x_taup_global["jet_pt_raw"],x_taup_global["jet_eta"],x_taup_global["jet_phi"],x_taup_global["jet_npfcand"]), axis=1)
+        X_taum_global = np.stack((x_taum_global["jet_pt_raw"],x_taum_global["jet_eta"],x_taum_global["jet_phi"],x_taum_global["jet_npfcand"]), axis=1)
+        X_gluon_global = np.stack((x_gluon_global["jet_pt_raw"],x_gluon_global["jet_eta"],x_gluon_global["jet_phi"],x_gluon_global["jet_npfcand"]), axis=1)
+        X_charm_global = np.stack((x_charm_global["jet_pt_raw"],x_charm_global["jet_eta"],x_charm_global["jet_phi"],x_charm_global["jet_npfcand"]), axis=1)
+        X_muon_global = np.stack((x_muon_global["jet_pt_raw"],x_muon_global["jet_eta"],x_muon_global["jet_phi"],x_muon_global["jet_npfcand"]), axis=1)
+        X_electron_global = np.stack((x_electron_global["jet_pt_raw"],x_electron_global["jet_eta"],x_electron_global["jet_phi"],x_electron_global["jet_npfcand"]), axis=1)
+        X_test_val_global = np.stack((X_test_global["jet_pt_raw"],X_test_global["jet_eta"],X_test_global["jet_phi"],X_test_global["jet_npfcand"]), axis=1)
+
+        # X_train_val = np.concatenate((np.array(X_train_val_global),X_train_val), axis=-1)
+        x_b = np.concatenate((np.array(X_b_global),x_b), axis=-1)
+        x_bkg = np.concatenate((np.array(X_bkg_global),x_bkg), axis=-1)
+        x_taup = np.concatenate((np.array(X_taup_global),x_taup), axis=-1)
+        x_taum = np.concatenate((np.array(X_taum_global),x_taum), axis=-1)
+        x_gluon = np.concatenate((np.array(X_gluon_global),x_gluon), axis=-1)
+        x_charm = np.concatenate((np.array(X_charm_global),x_charm), axis=-1)
+        x_muon = np.concatenate((np.array(X_muon_global),x_muon), axis=-1)
+        x_electron = np.concatenate((np.array(X_electron_global),x_electron), axis=-1)
+        X_test = np.concatenate((np.array(X_test_val_global),X_test), axis=-1)
 
     if inputQuant:
         input_quantizer = quantized_bits(bits=16, integer=6, symmetric=0, alpha=1)
@@ -1863,43 +1914,43 @@ def doPlots(
         plt.savefig(outFolder+"/response_tau"+".pdf")
         plt.cla()
 
+        if modelArchName in ["DeepSet", "DeepSet-MHA"]:
+            model = modelsAndNames["model"]
+            model2 = keras.Model(model.input, model.output[0])
+            model3 = keras.Model(model.input, model.output[1])
+            for explainer, name  in [(shap.GradientExplainer(model2, X_test[:1000]), "GradientExplainer"), ]:
+                # shap.initjs()
+                print("... {0}: explainer.shap_values(X)".format(name))
+                shap_values = explainer.shap_values(X_test[:1000])
+                new = np.sum(shap_values, axis = 2)
+                print("... shap summary_plot classification")
+                plt.clf()
+                labels = ["uds", "b"]
+                if splitTau:
+                    # labels.append("Tau")
+                    labels.append("Tau p")
+                    labels.append("Tau m")
+                if splitGluon:
+                    labels.append("Gluon")
+                if splitCharm:
+                    labels.append("Charm")
+                labels.append("Muon")
+                labels.append("Electron")
+                shapPlot(new, feature_names, labels)
+                plt.savefig(outFolder+"/shap_summary_class_"+inputSetTag+"_{0}.pdf".format(name))
+                plt.savefig(outFolder+"/shap_summary_class_"+inputSetTag+"_{0}.png".format(name))
 
-        model = modelsAndNames["model"]
-        model2 = keras.Model(model.input, model.output[0])
-        model3 = keras.Model(model.input, model.output[1])
-        for explainer, name  in [(shap.GradientExplainer(model2, X_test[:1000]), "GradientExplainer"), ]:
-            # shap.initjs()
-            print("... {0}: explainer.shap_values(X)".format(name))
-            shap_values = explainer.shap_values(X_test[:1000])
-            new = np.sum(shap_values, axis = 2)
-            print("... shap summary_plot classification")
-            plt.clf()
-            labels = ["uds", "b"]
-            if splitTau:
-                # labels.append("Tau")
-                labels.append("Tau p")
-                labels.append("Tau m")
-            if splitGluon:
-                labels.append("Gluon")
-            if splitCharm:
-                labels.append("Charm")
-            labels.append("Muon")
-            labels.append("Electron")
-            shapPlot(new, feature_names, labels)
-            plt.savefig(outFolder+"/shap_summary_class_"+inputSetTag+"_{0}.pdf".format(name))
-            plt.savefig(outFolder+"/shap_summary_class_"+inputSetTag+"_{0}.png".format(name))
-
-        for explainer, name  in [(shap.GradientExplainer(model3, X_test[:1000]), "GradientExplainer"), ]:
-            # shap.initjs()
-            print("... {0}: explainer.shap_values(X)".format(name))
-            shap_values = explainer.shap_values(X_test[:1000])
-            new = np.sum(shap_values, axis = 2)
-            print("... shap summary_plot regression")
-            plt.clf()
-            labels = ["Regression"]
-            shapPlot(new, feature_names, labels)
-            plt.savefig(outFolder+"/shap_summary_reg_"+inputSetTag+"_{0}.pdf".format(name))
-            plt.savefig(outFolder+"/shap_summary_reg_"+inputSetTag+"_{0}.png".format(name))
+            for explainer, name  in [(shap.GradientExplainer(model3, X_test[:1000]), "GradientExplainer"), ]:
+                # shap.initjs()
+                print("... {0}: explainer.shap_values(X)".format(name))
+                shap_values = explainer.shap_values(X_test[:1000])
+                new = np.sum(shap_values, axis = 2)
+                print("... shap summary_plot regression")
+                plt.clf()
+                labels = ["Regression"]
+                shapPlot(new, feature_names, labels)
+                plt.savefig(outFolder+"/shap_summary_reg_"+inputSetTag+"_{0}.pdf".format(name))
+                plt.savefig(outFolder+"/shap_summary_reg_"+inputSetTag+"_{0}.png".format(name))
 
 
 

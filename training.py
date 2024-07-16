@@ -30,9 +30,22 @@ model = prune.prune_low_magnitude(model, **pruning_params)
 def pruneFunction(layer):
 #    pruning_params = {'pruning_schedule': sparsity.PolynomialDecay(initial_sparsity=0.0, final_sparsity=0.5, begin_step=NSTEPS*2, end_step=NSTEPS*10, frequency=NSTEPS)}
     pruning_params = {"pruning_schedule": pruning_schedule.ConstantSparsity(0.5, begin_step=6000, frequency=10)}
+    # i_sparsity = 0 # initial 
+    # f_sparsity = 0.6 # final
+    # # num_samples = X_train.shape[0] * (1 - nnConfig["validation_split"])
+    # num_samples = 4271641 * (1 - 0.25)
+    # # end_step = np.ceil(num_samples / nnConfig["batch_size"]).astype(np.int32) * nnConfig["epochs"]
+    # end_step = np.ceil(num_samples / 1024).astype(np.int32) * 150
+    # pruning_params = {
+    #           'pruning_schedule': tfmot.sparsity.keras.PolynomialDecay(initial_sparsity=i_sparsity,
+    #                                                                    final_sparsity=f_sparsity,
+    #                                                                    begin_step=0,
+    #                                                                    end_step=end_step)
+    # }
         
         # Apply prunning to Dense layers type excluding the output layer
-    if isinstance(layer, tf.keras.layers.Dense) and layer.name != 'dense_out': # exclude output_dense
+    # if isinstance(layer, tf.keras.layers.Dense) and layer.name != 'dense_out': # exclude output_dense
+    if isinstance(layer, tf.keras.layers.Dense) and not layer.name in ["qDense_out_class","qDense_out_reg"]: # exclude output_dense
         return tfmot.sparsity.keras.prune_low_magnitude(layer, **pruning_params)
 #
 #        if isinstance(layer, tf.keras.layers.Conv1D): 
@@ -89,64 +102,9 @@ def plotInputFeatures(Xb, Xuds, Xtau, Xtaum, Xgluon, Xcharm, Xmuon, Xelectron, f
 def rms(array):
    return np.sqrt(np.mean(array ** 2))
 
-# pfcand_fields_all = [
-#     'puppiweight','pt_rel','pt_rel_log',
-#     'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
-#     'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
-#     'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-#     'pt_log','eta','phi',
-
-#     'emid','quality','tkquality',
-#     'track_valid','track_rinv',
-#     'track_phizero','track_tanl','track_z0','z0',
-#     'track_d0','track_chi2rphi','track_chi2rz',
-#     'track_bendchi2','track_hitpattern','track_nstubs',
-#     # 'track_mvaquality',
-#     'track_mvaother',
-
-#     ]
-# # A slightly reduced set
-# pfcand_fields_baselineHW = [
-#     'pt','eta','phi','charge','id', 'z0', 'dxy',
-#     ]
-# # a custom set
-# pfcand_fields_baselineEmulator = [
-#     'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-#     ]
-# # a custom set
-# pfcand_fields_ext1 = [
-#     'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-#     'pt_log','eta','phi',
-
-#     'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-
-#     'emid','quality','tkquality',
-#     'track_valid','track_rinv',
-#     'track_phizero','track_tanl','track_z0','z0',
-#     'track_d0','track_chi2rphi','track_chi2rz',
-#     'track_bendchi2','track_hitpattern','track_nstubs',
-#     # 'track_mvaquality',
-#     'track_mvaother',
-
-#     ]
-# # let's take all HW values
-# pfcand_fields_ext2 = [
-#     'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-#     'pt_log','eta','phi',
-
-#     'emid','quality','tkquality',
-#     'track_valid','track_rinv',
-#     'track_phizero','track_tanl','track_z0','z0',
-#     'track_d0','track_chi2rphi','track_chi2rz',
-#     'track_bendchi2','track_hitpattern','track_nstubs',
-#     'track_mvaother',
-#     # 'track_mvaquality',
-#     ]
-
-
 pfcand_fields_all = [
     'puppiweight','pt_rel','pt_rel_log',
-    'dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
+    'dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
     'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
     'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
     'pt_log','eta','phi',
@@ -156,68 +114,39 @@ pfcand_fields_all = [
     'track_phizero','track_tanl','track_z0','z0',
     'track_d0','track_chi2rphi','track_chi2rz',
     'track_bendchi2','track_hitpattern','track_nstubs',
-    # 'track_mvaquality',
     'track_mvaother',
+    'mass'
 
     ]
 # A slightly reduced set
 pfcand_fields_baselineHW = [
-    # 'pt','eta','phi','charge','id', 'z0', 'dxy',
-
     'pt','eta','phi',
     'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
-    'z0', 'dxy',
-    
+    'z0',
     ]
 # a custom set
 pfcand_fields_baselineEmulator = [
-    # 'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-
     'pt_rel','deta','dphi',
     'pt_log','eta','phi',
     'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
-    'z0', 'dxy',
-
+    'z0',
     ]
 # a custom set
 pfcand_fields_ext1 = [
-    # 'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-    # 'pt_log','eta','phi',
-
-    # 'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-
-    # 'emid','quality','tkquality',
-    # 'track_valid','track_rinv',
-    # 'track_phizero','track_tanl','track_z0','z0',
-    # 'track_d0','track_chi2rphi','track_chi2rz',
-    # 'track_bendchi2','track_hitpattern','track_nstubs',
-    # # 'track_mvaquality',
-    # 'track_mvaother',
-
     'pt_rel','deta','dphi',
     'pt_log','eta','phi',
     'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
-    'z0', 'dxy',
+    'z0',
     'isfilled',
+    'puppiweight', 'emid', 'quality',
 
     ]
 # let's take all HW values
 pfcand_fields_ext2 = [
-    # 'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-    # 'pt_log','eta','phi',
-
-    # 'emid','quality','tkquality',
-    # 'track_valid','track_rinv',
-    # 'track_phizero','track_tanl','track_z0','z0',
-    # 'track_d0','track_chi2rphi','track_chi2rz',
-    # 'track_bendchi2','track_hitpattern','track_nstubs',
-    # # 'track_mvaquality',
-    # 'track_mvaother',
-
     'pt_rel','deta','dphi',
-    'pt_log','eta','phi',
+    'pt','eta','phi','mass',
     'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
-    'z0', 'dxy',
+    'z0',
     'isfilled',
     'puppiweight', 'emid', 'quality',
 
@@ -266,13 +195,18 @@ def doTraining(
     nconstit = 16
 
     # PATH_load = workdir + '/datasets_13X_v9_leptons/' + filetag + "/" + flavs + "/"
-    PATH_load = workdir + '/datasets_13X_v9_DucLeptons/' + filetag + "/" + flavs + "/"
+    PATH_load = workdir + '/datasets_13X_v9_DucLeptons3/' + filetag + "/" + flavs + "/"
     chunksmatching = glob.glob(PATH_load+"X_"+inputSetTag+"_test*.parquet")
     chunksmatching = [chunksm.replace(PATH_load+"X_"+inputSetTag+"_test","").replace(".parquet","").replace("_","") for chunksm in chunksmatching]
 
     if test:
         import random
+        # chunksmatching = random.sample(chunksmatching, 2)
         chunksmatching = random.sample(chunksmatching, 5)
+        # chunksmatching = random.sample(chunksmatching, 10)
+    else:
+        import random
+        chunksmatching = random.sample(chunksmatching, 65)
 
     filter = "/(jet)_(eta|eta_phys|phi|pt|pt_phys|pt_raw|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau|label_taup|label_taum|label_electron|label_muon/"
 
@@ -287,13 +221,21 @@ def doTraining(
     X_train_global = None
     X_test_global = None
     x_b = None
+    x_b_global = None
     x_taup = None
+    x_taup_global = None
     x_taum = None
+    x_taum_global = None
     x_bkg = None
+    x_bkg_global = None
     x_gluon = None
+    x_gluon_global = None
     x_charm = None
+    x_charm_global = None
     x_electron = None
+    x_electron_global = None
     x_muon = None
+    x_muon_global = None
 
     for c in chunksmatching:
         if X_test is None:
@@ -316,75 +258,107 @@ def doTraining(
             Y_train_val_reg =ak.concatenate((Y_train_val_reg, ak.from_parquet(PATH_load+"Y_target_"+inputSetTag+"_train_"+c+".parquet")))
 
         x_b_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_b_"+c+".parquet")
+        x_b_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_b_"+c+".parquet")
         if len(x_b_) > 0:
             if x_b is None:
                 x_b = x_b_
+                x_b_global = x_b_global_
             else:
                 x_b =ak.concatenate((x_b, x_b_))
+                x_b_global =ak.concatenate((x_b_global, x_b_global_))
 
         x_bkg_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_bkg_"+c+".parquet")
+        x_bkg_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_bkg_"+c+".parquet")
         if len(x_bkg_) > 0:
             if x_bkg is None:
                 x_bkg = x_bkg_
+                x_bkg_global = x_bkg_global_
             else:
                 x_bkg =ak.concatenate((x_bkg, x_bkg_))
+                x_bkg_global =ak.concatenate((x_bkg_global, x_bkg_global_))
 
         if splitTau:
             x_taup_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_taup_"+c+".parquet")
+            x_taup_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_taup_"+c+".parquet")
             if len(x_taup_) > 0:
                 if x_taup is None:
                     x_taup = x_taup_
+                    x_taup_global = x_taup_global_
                 else:
                     x_taup =ak.concatenate((x_taup, x_taup_))
+                    x_taup_global =ak.concatenate((x_taup_global, x_taup_global_))
             x_taum_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_taum_"+c+".parquet")
+            x_taum_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_taum_"+c+".parquet")
             if len(x_taum_) > 0:
                 if x_taum is None:
                     x_taum = x_taum_
+                    x_taum_global = x_taum_global_
                 else:
                     x_taum =ak.concatenate((x_taum, x_taum_))
+                    x_taum_global =ak.concatenate((x_taum_global, x_taum_global_))
 
         if splitGluon:
             x_gluon_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_gluon_"+c+".parquet")
+            x_gluon_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_gluon_"+c+".parquet")
             if len(x_gluon_) > 0:
                 if x_gluon is None:
                     x_gluon = x_gluon_
+                    x_gluon_global = x_gluon_global_
                 else:
                     x_charm =ak.concatenate((x_gluon, x_gluon_))
+                    x_charm_global =ak.concatenate((x_gluon_global, x_gluon_global_))
 
         if splitCharm:
             x_charm_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_charm_"+c+".parquet")
+            x_charm_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_charm_"+c+".parquet")
             if len(x_charm_) > 0:
                 if x_charm is None:
                     x_charm = x_charm_
+                    x_charm_global = x_charm_global_
                 else:
                     x_charm =ak.concatenate((x_charm, x_charm_))
+                    x_charm_global =ak.concatenate((x_charm_global, x_charm_global_))
         
         x_muon_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_muon_"+c+".parquet")
+        x_muon_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_muon_"+c+".parquet")
         if len(x_muon_) > 0:
             if x_muon is None:
                 x_muon = x_muon_
+                x_muon_global = x_muon_global_
             else:
                 x_muon =ak.concatenate((x_muon, x_muon_))
+                x_muon_global =ak.concatenate((x_muon_global, x_muon_global_))
 
         x_electron_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_electron_"+c+".parquet")
+        x_electron_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_electron_"+c+".parquet")
         if len(x_electron_) > 0:
             if x_electron is None:
                 x_electron = x_electron_
+                x_electron_global = x_electron_global_
             else:
                 x_electron =ak.concatenate((x_electron, x_electron_))
+                x_electron_global =ak.concatenate((x_electron_global, x_electron_global_))
 
 
     x_b = ak.to_numpy(x_b)
+    # x_b_global = ak.to_numpy(x_b_global)
     x_bkg = ak.to_numpy(x_bkg)
+    # x_bkg_global = ak.to_numpy(x_bkg_global)
     if splitTau:
         x_taup = ak.to_numpy(x_taup)
+        # x_taup_global = ak.to_numpy(x_taup_global)
         x_taum = ak.to_numpy(x_taum)
+        # x_taum_global = ak.to_numpy(x_taum_global)
     if splitGluon:
         x_gluon = ak.to_numpy(x_gluon)
+        # x_gluon_global = ak.to_numpy(x_gluon_global)
     if splitCharm:
         x_charm = ak.to_numpy(x_charm)
+        # x_charm_global = ak.to_numpy(x_charm_global)
     x_muon = ak.to_numpy(x_muon)
+    # x_muon_global = ak.to_numpy(x_muon_global)
     x_electron = ak.to_numpy(x_electron)
+    # x_electron_global = ak.to_numpy(x_electron_global)
 
     # rebalance data set
     X_train_val = ak.to_numpy(X_train_val)
@@ -408,7 +382,7 @@ def doTraining(
                                                       nnodes_phi = nnConfig["nNodes"], nnodes_rho = nnConfig["nNodes"],
                                                       nbits = nbits, integ = integ, addRegression = nnConfig["regression"], nLayers = nnConfig["nLayers"])
     elif nnConfig["model"] == "MLP":
-        model, modelname, custom_objects = getMLP(nclasses = len(Y_train_val[0]), input_shape = (nconstit*nfeat),
+        model, modelname, custom_objects = getMLP(nclasses = len(Y_train_val[0]), input_shape = (nconstit*nfeat)+4,
                                                       nnodes_phi = nnConfig["nNodes"], nnodes_rho = nnConfig["nNodes"],
                                                       nbits = nbits, integ = integ, addRegression = nnConfig["regression"], nLayers = nnConfig["nLayers"], nFeatures = nfeat)
         # pdb.set_trace()
@@ -425,18 +399,55 @@ def doTraining(
             x_charm = np.reshape(x_charm, (x_charm.shape[0],x_charm.shape[1]*x_charm.shape[2]))
         x_muon = np.reshape(x_muon, (x_muon.shape[0],x_muon.shape[1]*x_muon.shape[2]))
         x_electron = np.reshape(x_electron, (x_electron.shape[0],x_electron.shape[1]*x_electron.shape[2]))
+
+        # append global features
+        X_train_val_global = np.stack((X_train_global["jet_pt_raw"],X_train_global["jet_eta"],X_train_global["jet_phi"],X_train_global["jet_npfcand"]), axis=1)
+        X_b_global = np.stack((x_b_global["jet_pt_raw"],x_b_global["jet_eta"],x_b_global["jet_phi"],x_b_global["jet_npfcand"]), axis=1)
+        X_bkg_global = np.stack((x_bkg_global["jet_pt_raw"],x_bkg_global["jet_eta"],x_bkg_global["jet_phi"],x_bkg_global["jet_npfcand"]), axis=1)
+        X_taup_global = np.stack((x_taup_global["jet_pt_raw"],x_taup_global["jet_eta"],x_taup_global["jet_phi"],x_taup_global["jet_npfcand"]), axis=1)
+        X_taum_global = np.stack((x_taum_global["jet_pt_raw"],x_taum_global["jet_eta"],x_taum_global["jet_phi"],x_taum_global["jet_npfcand"]), axis=1)
+        X_gluon_global = np.stack((x_gluon_global["jet_pt_raw"],x_gluon_global["jet_eta"],x_gluon_global["jet_phi"],x_gluon_global["jet_npfcand"]), axis=1)
+        X_charm_global = np.stack((x_charm_global["jet_pt_raw"],x_charm_global["jet_eta"],x_charm_global["jet_phi"],x_charm_global["jet_npfcand"]), axis=1)
+        X_muon_global = np.stack((x_muon_global["jet_pt_raw"],x_muon_global["jet_eta"],x_muon_global["jet_phi"],x_muon_global["jet_npfcand"]), axis=1)
+        X_electron_global = np.stack((x_electron_global["jet_pt_raw"],x_electron_global["jet_eta"],x_electron_global["jet_phi"],x_electron_global["jet_npfcand"]), axis=1)
+        X_test_val_global = np.stack((X_test_global["jet_pt_raw"],X_test_global["jet_eta"],X_test_global["jet_phi"],X_test_global["jet_npfcand"]), axis=1)
+
+        X_train_val = np.concatenate((np.array(X_train_val_global),X_train_val), axis=-1)
+        x_b = np.concatenate((np.array(X_b_global),x_b), axis=-1)
+        x_bkg = np.concatenate((np.array(X_bkg_global),x_bkg), axis=-1)
+        x_taup = np.concatenate((np.array(X_taup_global),x_taup), axis=-1)
+        x_taum = np.concatenate((np.array(X_taum_global),x_taum), axis=-1)
+        x_gluon = np.concatenate((np.array(X_gluon_global),x_gluon), axis=-1)
+        x_charm = np.concatenate((np.array(X_charm_global),x_charm), axis=-1)
+        x_muon = np.concatenate((np.array(X_muon_global),x_muon), axis=-1)
+        x_electron = np.concatenate((np.array(X_electron_global),x_electron), axis=-1)
+        X_test = np.concatenate((np.array(X_test_val_global),X_test), axis=-1)
+
     elif nnConfig["model"] == "DeepSet-MHA":
         model, modelname, custom_objects = getDeepSetWAttention(nclasses = len(Y_train_val[0]), input_shape = (nconstit, nfeat),
                                                                 nnodes_phi = nnConfig["nNodes"], nnodes_rho = nnConfig["nNodes"]/2,
                                                                 nbits = nbits, integ = integ,
                                                                 n_head = nnConfig["nHeads"], dim = nfeat, dim2 = nnConfig["nNodesHead"], addRegression = nnConfig["regression"])
     elif nnConfig["model"] == "MLP-MHA":
-        model, modelname, custom_objects = getMLPWAttention(nclasses = len(Y_train_val[0]), input_shape = (nconstit *nfeat),
+        model, modelname, custom_objects = getMLPWAttention(nclasses = len(Y_train_val[0]), input_shape = (nconstit*nfeat),
                                                                 nnodes_phi = nnConfig["nNodes"], nnodes_rho = nnConfig["nNodes"]/2,
                                                                 nbits = nbits, integ = integ,
                                                                 n_head = nnConfig["nHeads"], dim = nfeat, dim2 = nnConfig["nNodesHead"], addRegression = nnConfig["regression"], nLayers = nnConfig["nLayers"],
                                                                 nFeatures = nfeat)
-        
+                # pdb.set_trace()
+        X_train_val = np.reshape(X_train_val, (X_train_val.shape[0],X_train_val.shape[1]*X_train_val.shape[2]))
+        X_test = np.reshape(X_test, (X_test.shape[0],X_test.shape[1]*X_test.shape[2]))
+        x_b = np.reshape(x_b, (x_b.shape[0],x_b.shape[1]*x_b.shape[2]))
+        x_bkg = np.reshape(x_bkg, (x_bkg.shape[0],x_bkg.shape[1]*x_bkg.shape[2]))
+        if splitTau:
+            x_taup = np.reshape(x_taup, (x_taup.shape[0],x_taup.shape[1]*x_taup.shape[2]))
+            x_taum = np.reshape(x_taum, (x_taum.shape[0],x_taum.shape[1]*x_taum.shape[2]))
+        if splitGluon:
+            x_gluon = np.reshape(x_gluon, (x_gluon.shape[0],x_gluon.shape[1]*x_gluon.shape[2]))
+        if splitCharm:
+            x_charm = np.reshape(x_charm, (x_charm.shape[0],x_charm.shape[1]*x_charm.shape[2]))
+        x_muon = np.reshape(x_muon, (x_muon.shape[0],x_muon.shape[1]*x_muon.shape[2]))
+        x_electron = np.reshape(x_electron, (x_electron.shape[0],x_electron.shape[1]*x_electron.shape[2]))
 
     if nnConfig["pruning"]:
         modelname = modelname + "_pruned"
@@ -471,10 +482,13 @@ def doTraining(
 
     # calculate class weights
     class_weights = np.ones(len(Y_train_val[0]))
+    # class_weights = np.array([2, 1, 1, 2, 2, 2, 1, 1])
 
     # get pT weights, weighting all to b spectrum
     # bins_pt_weights = np.array([15, 20, 25, 30, 38, 48, 60, 76, 97, 122, 154, 195, 246, 311, 393, 496, 627, 792, 9999999999999999999])
     bins_pt_weights = np.array([15, 18, 22, 25, 30, 38, 48, 60, 76, 97, 122, 154, 195, 246, 311, 393, 496, 627, 792, 9999999999999999999])
+    # bins_pt_weights = np.array([15, 17, 19, 22, 25, 30, 35, 40, 45, 50, 60, 76, 97, 122, 154, 195, 246, 311, 393, 496, 627, 792, 9999999999999999999])
+    # bins_pt_weights = np.array([15, 17, 19, 22, 25, 30, 35, 40, 45, 50, 60, 76, 97, 122, 154, 195, 246, 311, 393, 496, 9999999999999999999])
     # bins_pt_weights = np.array([15, 18, 22, 25, 30, 38, 48, 60, 76, 97, 122, 154, 200, 300, 400, 627, 9999999999999999999])
     # bins_pt_weights = np.array([15, 18, 22, 25, 30, 38, 48, 60, 76, 97, 122, 154, 300, 627, 9999999999999999999])
     counts_b, edges_b = np.histogram(X_train_global[X_train_global["label_b"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
@@ -486,7 +500,9 @@ def doTraining(
     counts_muon, edges_muon = np.histogram(X_train_global[X_train_global["label_muon"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
     counts_electron, edges_electron = np.histogram(X_train_global[X_train_global["label_electron"]>0]["jet_pt_phys"], bins = bins_pt_weights) 
 
-    print(counts_b, counts_uds, counts_g, counts_c, counts_taup, counts_taum, counts_muon, counts_electron)
+    # print(counts_b, counts_uds, counts_g, counts_c, counts_taup, counts_taum, counts_muon, counts_electron)
+    # for tp in (counts_b, counts_uds, counts_g, counts_c, counts_taup, counts_taum, counts_muon, counts_electron):
+    #     print (tp)
 
     w_b = np.nan_to_num(counts_b/counts_b * class_weights[0], nan = 1., posinf = 1., neginf = 1.)
     w_uds =  np.nan_to_num(counts_b/counts_uds * class_weights[1], nan = 1., posinf = 1., neginf = 1.)
@@ -496,6 +512,21 @@ def doTraining(
     w_taum =  np.nan_to_num(counts_b/counts_taum * class_weights[5], nan = 1., posinf = 1., neginf = 1.)
     w_muon =  np.nan_to_num(counts_b/counts_muon * class_weights[6], nan = 1., posinf = 1., neginf = 1.)
     w_electron =  np.nan_to_num(counts_b/counts_electron * class_weights[7], nan = 1., posinf = 1., neginf = 1.)
+
+    # print (w_uds)
+
+    # do it flat in pt and overwrite the other one
+    # for iBin in range(0, len(counts_b)):
+    #     w_b[iBin] = np.nan_to_num(counts_b[0] / counts_b[iBin], nan = 1., posinf = 1., neginf = 1.)
+    #     w_uds[iBin] = np.nan_to_num(counts_b[0] / counts_uds[iBin], nan = 1., posinf = 1., neginf = 1.)
+    #     w_g[iBin] = np.nan_to_num(counts_b[0] / counts_g[iBin], nan = 1., posinf = 1., neginf = 1.)
+    #     w_c[iBin] = np.nan_to_num(counts_b[0] / counts_c[iBin], nan = 1., posinf = 1., neginf = 1.)
+    #     w_taup[iBin] = np.nan_to_num(counts_b[0] / counts_taup[iBin], nan = 1., posinf = 1., neginf = 1.)
+    #     w_taum[iBin] = np.nan_to_num(counts_b[0] / counts_taum[iBin], nan = 1., posinf = 1., neginf = 1.)
+    #     w_muon[iBin] = np.nan_to_num(counts_b[0] / counts_muon[iBin], nan = 1., posinf = 1., neginf = 1.)
+    #     w_electron[iBin] = np.nan_to_num(counts_b[0] / counts_electron[iBin], nan = 1., posinf = 1., neginf = 1.)
+
+    # print (w_uds)
 
     X_train_global["weight_jetpT_binidx"] = to_categorical( np.digitize(X_train_global["jet_pt_phys"], bins_pt_weights)-1)
 
@@ -509,12 +540,60 @@ def doTraining(
                                 X_train_global["label_electron"]*ak.sum(w_electron*X_train_global["weight_jetpT_binidx"], axis =-1)
                                 )
 
+    wSum_b = ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_b"]>0) )) / ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_b"]>0) ))
+    wSum_uds = ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_b"]>0) )) / ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_uds"]>0) ))
+    wSum_g = ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_b"]>0) )) / ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_g"]>0) ))
+    wSum_c = ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_b"]>0) )) / ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_c"]>0) ))
+    wSum_taup = ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_b"]>0) )) / ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_taup"]>0) ))
+    wSum_taum = ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_b"]>0) )) / ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_taum"]>0) ))
+    wSum_muon = ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_b"]>0) )) / ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_muon"]>0) ))
+    wSum_electron = ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_b"]>0) )) / ak.sum(( (X_train_global["weight_pt"]) * (X_train_global["label_electron"]>0) ))
+
+    # weight some classes higher
+    # wSum_b = 10.0 * wSum_b
+    # wSum_uds = 10.0 * wSum_uds
+    # wSum_g = 10.0 * wSum_g
+    # wSum_c = 5.0 * wSum_c
+    # wSum_taup = 1.0 * wSum_taup
+    # wSum_taum = 1.0 * wSum_taum
+    # wSum_muon = 0.4 * wSum_muon
+    # wSum_electron = 0.4 * wSum_electron
+
+    X_train_global["weight_pt"] = (X_train_global["weight_pt"] * X_train_global["label_b"] * wSum_b + \
+                                   X_train_global["weight_pt"] * X_train_global["label_uds"] * wSum_uds + \
+                                   X_train_global["weight_pt"] * X_train_global["label_g"] * wSum_g + \
+                                   X_train_global["weight_pt"] * X_train_global["label_c"] * wSum_c + \
+                                   X_train_global["weight_pt"] * X_train_global["label_taup"] * wSum_taup + \
+                                   X_train_global["weight_pt"] * X_train_global["label_taum"] * wSum_taum + \
+                                   X_train_global["weight_pt"] * X_train_global["label_muon"] * wSum_muon + \
+                                   X_train_global["weight_pt"] * X_train_global["label_electron"] * wSum_electron
+                                )
+
+    # print (np.histogram(X_train_global[X_train_global["label_b"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_b"]>0]["weight_pt"]))
+    # print (np.histogram(X_train_global[X_train_global["label_uds"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_uds"]>0]["weight_pt"]))
+    # print (np.histogram(X_train_global[X_train_global["label_g"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_g"]>0]["weight_pt"]))
+    # print (np.histogram(X_train_global[X_train_global["label_c"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_c"]>0]["weight_pt"]))
+    # print (np.histogram(X_train_global[X_train_global["label_taup"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_taup"]>0]["weight_pt"]))
+    # print (np.histogram(X_train_global[X_train_global["label_taum"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_taum"]>0]["weight_pt"]))
+    # print (np.histogram(X_train_global[X_train_global["label_muon"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_muon"]>0]["weight_pt"]))
+    # print (np.histogram(X_train_global[X_train_global["label_electron"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_electron"]>0]["weight_pt"]))
+
     sample_weights = ak.to_numpy(X_train_global["weight_pt"])
     sample_weights = (sample_weights/np.mean(sample_weights))
 
     print ("Using sample weights:", sample_weights)
     sample_weights = np.nan_to_num(sample_weights, nan = 1., posinf = 1., neginf = 1.)
     print ("Using sample weights fixed:", sample_weights)
+
+    print ("Check all histograms are the same")
+    print (np.histogram(X_train_global[X_train_global["label_b"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_b"]>0]["weight_pt"])[0])
+    print (np.histogram(X_train_global[X_train_global["label_uds"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_uds"]>0]["weight_pt"])[0])
+    print (np.histogram(X_train_global[X_train_global["label_g"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_g"]>0]["weight_pt"])[0])
+    print (np.histogram(X_train_global[X_train_global["label_c"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_c"]>0]["weight_pt"])[0])
+    print (np.histogram(X_train_global[X_train_global["label_taup"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_taup"]>0]["weight_pt"])[0])
+    print (np.histogram(X_train_global[X_train_global["label_taum"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_taum"]>0]["weight_pt"])[0])
+    print (np.histogram(X_train_global[X_train_global["label_muon"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_muon"]>0]["weight_pt"])[0])
+    print (np.histogram(X_train_global[X_train_global["label_electron"]>0]["jet_pt_phys"], bins = bins_pt_weights, weights = X_train_global[X_train_global["label_electron"]>0]["weight_pt"])[0])
 
     # plot the weight distributions
     plt.figure()
@@ -538,6 +617,9 @@ def doTraining(
     # Define the optimizer ( minimization algorithm )
     if nnConfig["optimizer"] == "adam":
         optim = Adam(learning_rate = nnConfig["learning_rate"])
+        # optim = Adam(learning_rate = nnConfig["learning_rate"], weight_decay=1e-4, epsilon=1e-08, amsgrad = True)
+    elif nnConfig["optimizer"] == "sgd":
+        optim = SGD(learning_rate = nnConfig["learning_rate"], momentum=0.9)
 
     if nnConfig["pruning"]:
         # Clone model to apply "pruneFunction" to model layers 
@@ -553,7 +635,9 @@ def doTraining(
         # model.compile(optimizer=optim, loss={'output_class': 'categorical_crossentropy', 'output_reg': 'mean_squared_error'},
         #               metrics={'output_class': 'categorical_accuracy', 'output_reg': ['mae', 'mean_squared_error']}, loss_weights=[1., 1.])
         model.compile(optimizer=optim, loss={'output_class': 'categorical_crossentropy', 'output_reg': 'log_cosh'},
-                      metrics={'output_class': 'categorical_accuracy', 'output_reg': ['mae', 'mean_squared_error']}, loss_weights=[1., 2.])
+                      metrics={'output_class': 'categorical_accuracy', 'output_reg': ['mae', 'mean_squared_error']},
+                      weighted_metrics={'output_class': 'categorical_accuracy', 'output_reg': ['mae', 'mean_squared_error']},
+                      loss_weights=[1., 50.])
     else:
         model.compile(optimizer=optim, loss='categorical_crossentropy', metrics=['categorical_accuracy'])
 
@@ -601,8 +685,6 @@ def doTraining(
                                     save_weights_only = False, mode = 'auto', 
                                     save_freq = 'epoch')
 
-    #tb = TensorBoard("/Users/sznajder/WorkM1/miniforge3/tensorflow_macos/arm64/workdir/logs")
-
     # callbacks_=[es,ls,chkp])
     # callbacks_=[es,chkp])
     callbacks_ = [chkp]
@@ -630,9 +712,8 @@ def doTraining(
                             verbose = 1,
                             validation_split = nnConfig["validation_split"],
                             callbacks = callbacks_,
-                            # class_weight = class_weights,
                             sample_weight = sample_weights,
-                            shuffle=True)
+                            shuffle = True)
     else:
         history = model.fit(X_train_val, Y_train_val, 
                             epochs = nnConfig["epochs"], 
@@ -641,7 +722,7 @@ def doTraining(
                             validation_split = nnConfig["validation_split"],
                             callbacks=callbacks_,
                             class_weight = class_weights,
-                            shuffle=True)
+                            shuffle = True)
     
     custom_objects_ = {}
     if custom_objects is not None:
@@ -658,8 +739,12 @@ def doTraining(
         # Strip the model 
         pmodel = strip_pruning(model)
         if nnConfig["regression"] == True:
+            # pmodel.compile(optimizer=optim, loss={'output_class': 'categorical_crossentropy', 'output_reg': 'mean_squared_error'},
+            #           metrics={'output_class': 'categorical_accuracy', 'output_reg': ['mae', 'mean_squared_error']}, loss_weights=[1., 1.])
             pmodel.compile(optimizer=optim, loss={'output_class': 'categorical_crossentropy', 'output_reg': 'log_cosh'},
-                        metrics={'output_class': 'categorical_accuracy', 'output_reg': ['mae', 'mean_squared_error']}, loss_weights=[1., 1.])
+                        metrics={'output_class': 'categorical_accuracy', 'output_reg': ['mae', 'mean_squared_error']},
+                        weighted_metrics={'output_class': 'categorical_accuracy', 'output_reg': ['mae', 'mean_squared_error']},
+                        loss_weights=[1., 50.])
         else:
             pmodel.compile(optimizer=optim, loss='categorical_crossentropy', metrics=['categorical_accuracy'])
         # Print the stripped model summary
@@ -1024,7 +1109,7 @@ if __name__ == "__main__":
     allowedClasses = ["b", "bt", "btg", "btgc"]
     allowedFiles = ["All200", "extendedAll200", "baselineAll200", "AllHIG200", "AllQCD200", "AllTT200", "TT_PU200", "TT1L_PU200", "TT2L_PU200", "ggHtt_PU200"]
     allowedInputs = ["baselineHW", "baselineEmulator", "ext1", 'ext2', "all"]
-    allowedOptimizer = ["adam", "ranger"]
+    allowedOptimizer = ["adam", "ranger", "sgd"]
 
     if args.model not in allowedModels:
         raise ValueError("args.model not in allowed models! Options are", allowedModels)

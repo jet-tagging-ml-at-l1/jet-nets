@@ -25,6 +25,9 @@ from histbook import *
 import sys, os, time
 import hls4ml
 import pickle
+
+# os.environ['PATH'] += os.pathsep + '/opt/Xilinx/Vivado/2023.1/bin'
+
 # import tensorflow as tf
 # from tensorflow_model_optimization.sparsity.keras import strip_pruning
 # from tensorflow_model_optimization.python.core.sparsity.keras import pruning_wrapper
@@ -66,40 +69,65 @@ pfcand_fields_all = [
     ]
 # A slightly reduced set
 pfcand_fields_baselineHW = [
-    'pt','eta','phi','charge','id', 'z0', 'dxy',
+    # 'pt','eta','phi','charge','id', 'z0', 'dxy',
+
+    'pt','eta','phi',
+    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
+    'z0', 'dxy',
+    
     ]
 # a custom set
 pfcand_fields_baselineEmulator = [
-    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    # 'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+
+    'pt_rel','deta','dphi',
+    'pt_log','eta','phi',
+    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
+    'z0', 'dxy',
+
     ]
 # a custom set
 pfcand_fields_ext1 = [
-    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    # 'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    # 'pt_log','eta','phi',
+
+    # 'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
+
+    # 'emid','quality','tkquality',
+    # 'track_valid','track_rinv',
+    # 'track_phizero','track_tanl','track_z0','z0',
+    # 'track_d0','track_chi2rphi','track_chi2rz',
+    # 'track_bendchi2','track_hitpattern','track_nstubs',
+    # # 'track_mvaquality',
+    # 'track_mvaother',
+
+    'pt_rel','deta','dphi',
     'pt_log','eta','phi',
-
-    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-
-    'emid','quality','tkquality',
-    'track_valid','track_rinv',
-    'track_phizero','track_tanl','track_z0','z0',
-    'track_d0','track_chi2rphi','track_chi2rz',
-    'track_bendchi2','track_hitpattern','track_nstubs',
-    # 'track_mvaquality',
-    'track_mvaother',
+    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
+    'z0', 'dxy',
+    'isfilled',
 
     ]
 # let's take all HW values
 pfcand_fields_ext2 = [
-    'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-    'pt_log','eta','phi',
+    # 'pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
+    # 'pt_log','eta','phi',
 
-    'emid','quality','tkquality',
-    'track_valid','track_rinv',
-    'track_phizero','track_tanl','track_z0','z0',
-    'track_d0','track_chi2rphi','track_chi2rz',
-    'track_bendchi2','track_hitpattern','track_nstubs',
-    # 'track_mvaquality',
-    'track_mvaother',
+    # 'emid','quality','tkquality',
+    # 'track_valid','track_rinv',
+    # 'track_phizero','track_tanl','track_z0','z0',
+    # 'track_d0','track_chi2rphi','track_chi2rz',
+    # 'track_bendchi2','track_hitpattern','track_nstubs',
+    # # 'track_mvaquality',
+    # 'track_mvaother',
+
+    'pt_rel','deta','dphi',
+    'pt_log','eta','phi',
+    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
+    'z0', 'dxy',
+    'isfilled',
+    'puppiweight', 'emid', 'quality',
+
     ]
 
 modelnamesDict = {
@@ -130,8 +158,9 @@ def synthesize(
     tempflav = "btgc"
 
     # PATH = workdir + '/datasets_notreduced_chunked/' + filetag + "/" + tempflav + "/"
-    PATH = workdir + '/datasets_13X_v9/' + filetag + "/" + tempflav + "/"
+    # PATH = workdir + '/datasets_13X_v9/' + filetag + "/" + tempflav + "/"
     # PATH = workdir + '/datasets_13X_v9_leptons/' + filetag + "/" + tempflav + "/"
+    PATH = workdir + '/datasets_13X_v9_DucLeptons/' + filetag + "/" + tempflav + "/"
     outFolder = "outputSynthesis/"+outname+"/Training_" + timestamp + "/"
     if not os.path.exists(outFolder):
         os.makedirs(outFolder, exist_ok=True)
@@ -158,14 +187,18 @@ def synthesize(
 
     print ("Loading data in all",len(chunksmatching),"chunks.")
 
+
     X_test = None
     X_test_global = None
     Y_test = None
     x_b = None
-    x_tau = None
+    x_taup = None
+    x_taum = None
     x_bkg = None
     x_gluon = None
     x_charm = None
+    x_muon = None
+    x_electron = None
 
     for c in chunksmatching:
         if X_test is None:
@@ -177,42 +210,145 @@ def synthesize(
             X_test_global =ak.concatenate((X_test_global, ak.from_parquet(PATH+"X_global_"+inputSetTag+"_test_"+c+".parquet")))
             Y_test =ak.concatenate((Y_test, ak.from_parquet(PATH+"Y_"+inputSetTag+"_test_"+c+".parquet")))
 
-        if x_b is None:
-            x_b = ak.from_parquet(PATH+"X_"+inputSetTag+"_b_"+c+".parquet")
-            x_bkg = ak.from_parquet(PATH+"X_"+inputSetTag+"_bkg_"+c+".parquet")
-            if splitTau:
-                x_tau_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_tau_"+c+".parquet")
-                if len(x_tau_) > 0: x_tau = x_tau_
-            if splitGluon:
-                x_gluon = ak.from_parquet(PATH+"X_"+inputSetTag+"_gluon_"+c+".parquet")
-            if splitCharm:
-                x_charm_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_charm_"+c+".parquet")
-                if len(x_charm_) > 0: x_charm = x_charm_
-        else:
-            x_b =ak.concatenate((x_b, ak.from_parquet(PATH+"X_"+inputSetTag+"_b_"+c+".parquet")))
-            x_bkg =ak.concatenate((x_bkg, ak.from_parquet(PATH+"X_"+inputSetTag+"_bkg_"+c+".parquet")))
-            if splitTau:
-                x_tau_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_tau_"+c+".parquet")
-                if len(x_tau_) > 0:
-                    x_tau =ak.concatenate((x_tau, x_tau_))
-            if splitGluon:
-                x_gluon =ak.concatenate((x_gluon, ak.from_parquet(PATH+"X_"+inputSetTag+"_gluon_"+c+".parquet")))
-            if splitCharm:
-                x_charm_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_charm_"+c+".parquet")
-                if len(x_charm_) > 0:
+        # if x_b is None:
+        #     x_b = ak.from_parquet(PATH+"X_"+inputSetTag+"_b_"+c+".parquet")
+        #     x_bkg = ak.from_parquet(PATH+"X_"+inputSetTag+"_bkg_"+c+".parquet")
+        #     if splitTau:
+        #         x_taup_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taup_"+c+".parquet")
+        #         if len(x_taup_) > 0: x_taup = x_taup_
+        #         x_taum_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taum_"+c+".parquet")
+        #         if len(x_taum_) > 0: x_taum = x_taum_
+        #     if splitGluon:
+        #         x_gluon = ak.from_parquet(PATH+"X_"+inputSetTag+"_gluon_"+c+".parquet")
+        #     if splitCharm:
+        #         x_charm_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_charm_"+c+".parquet")
+        #         if len(x_charm_) > 0: x_charm = x_charm_
+        #     x_muon_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_muon_"+c+".parquet")
+        #     if len(x_muon_) > 0: x_muon = x_muon_
+        #     x_electron_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_electron_"+c+".parquet")
+        #     if len(x_electron_) > 0: x_electron = x_electron_
+        # else:
+        #     x_b =ak.concatenate((x_b, ak.from_parquet(PATH+"X_"+inputSetTag+"_b_"+c+".parquet")))
+        #     x_bkg =ak.concatenate((x_bkg, ak.from_parquet(PATH+"X_"+inputSetTag+"_bkg_"+c+".parquet")))
+        #     if splitTau:
+        #         x_taup_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taup_"+c+".parquet")
+        #         if len(x_taup_) > 0:
+        #             x_taup =ak.concatenate((x_taup, x_taup_))
+        #         x_taum_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taum_"+c+".parquet")
+        #         if len(x_taum_) > 0:
+        #             x_taum =ak.concatenate((x_taum, x_taum_))
+        #     if splitGluon:
+        #         x_gluon =ak.concatenate((x_gluon, ak.from_parquet(PATH+"X_"+inputSetTag+"_gluon_"+c+".parquet")))
+        #     if splitCharm:
+        #         x_charm_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_charm_"+c+".parquet")
+        #         if len(x_charm_) > 0:
+        #             x_charm =ak.concatenate((x_charm, x_charm_))
+        #     x_muon_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_muon_"+c+".parquet")
+        #     if len(x_muon_) > 0:
+        #         x_muon =ak.concatenate((x_muon, x_electron_))
+        #     x_electronn_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_electron_"+c+".parquet")
+        #     if len(x_electron_) > 0:
+        #         x_electron =ak.concatenate((x_electron, x_electron_))
+
+        x_b_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_b_"+c+".parquet")
+        if len(x_b_) > 0:
+            if x_b is None:
+                x_b = x_b_
+            else:
+                x_b =ak.concatenate((x_b, x_b_))
+
+        x_bkg_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_bkg_"+c+".parquet")
+        if len(x_bkg_) > 0:
+            if x_bkg is None:
+                x_bkg = x_bkg_
+            else:
+                x_bkg =ak.concatenate((x_bkg, x_bkg_))
+
+        if splitTau:
+            # x_tau_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_tau_"+c+".parquet")
+            # if len(x_tau_) > 0:
+            #     if x_tau is None:
+            #         x_tau = x_tau_
+            #     else:
+            #         x_tau =ak.concatenate((x_tau, x_tau_))
+            x_taup_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taup_"+c+".parquet")
+            if len(x_taup_) > 0:
+                if x_taup is None:
+                    x_taup = x_taup_
+                else:
+                    x_taup =ak.concatenate((x_taup, x_taup_))
+            x_taum_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taum_"+c+".parquet")
+            if len(x_taum_) > 0:
+                if x_taum is None:
+                    x_taum = x_taum_
+                else:
+                    x_taum =ak.concatenate((x_taum, x_taum_))
+
+        if splitGluon:
+            x_gluon_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_gluon_"+c+".parquet")
+            if len(x_gluon_) > 0:
+                if x_gluon is None:
+                    x_gluon = x_gluon_
+                else:
+                    x_charm =ak.concatenate((x_gluon, x_gluon_))
+
+        if splitCharm:
+            x_charm_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_charm_"+c+".parquet")
+            if len(x_charm_) > 0:
+                if x_charm is None:
+                    x_charm = x_charm_
+                else:
                     x_charm =ak.concatenate((x_charm, x_charm_))
+        
+        x_muon_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_muon_"+c+".parquet")
+        if len(x_muon_) > 0:
+            if x_muon is None:
+                x_muon = x_muon_
+            else:
+                x_muon =ak.concatenate((x_muon, x_muon_))
+
+        x_electron_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_electron_"+c+".parquet")
+        if len(x_electron_) > 0:
+            if x_electron is None:
+                x_electron = x_electron_
+            else:
+                x_electron =ak.concatenate((x_electron, x_electron_))
+
+    # print (X_test_global)
+    # print (X_test_global.fields)
 
     x_b = ak.to_numpy(x_b)
     x_bkg = ak.to_numpy(x_bkg)
     if splitTau:
-        x_tau = ak.to_numpy(x_tau)
+        x_taup = ak.to_numpy(x_taup)
+        x_taum = ak.to_numpy(x_taum)
     if splitGluon:
         x_gluon = ak.to_numpy(x_gluon)
     if splitCharm:
         x_charm = ak.to_numpy(x_charm)
+    x_muon = ak.to_numpy(x_muon)
+    x_electron = ak.to_numpy(x_electron)
 
     X_test = ak.to_numpy(X_test)
     Y_test = ak.to_numpy(Y_test)
+
+    modelArchName = modelname
+
+    if modelArchName == "MLP":
+        # pdb.set_trace()
+        # X_train_val = np.reshape(X_train_val, (X_train_val.shape[0],X_train_val.shape[1]*X_train_val.shape[2]))
+        X_test = np.reshape(X_test, (X_test.shape[0],X_test.shape[1]*X_test.shape[2]))
+        x_b = np.reshape(x_b, (x_b.shape[0],x_b.shape[1]*x_b.shape[2]))
+        x_bkg = np.reshape(x_bkg, (x_bkg.shape[0],x_bkg.shape[1]*x_bkg.shape[2]))
+        if splitTau:
+            x_taup = np.reshape(x_taup, (x_taup.shape[0],x_taup.shape[1]*x_taup.shape[2]))
+            x_taum = np.reshape(x_taum, (x_taum.shape[0],x_taum.shape[1]*x_taum.shape[2]))
+        if splitGluon:
+            x_gluon = np.reshape(x_gluon, (x_gluon.shape[0],x_gluon.shape[1]*x_gluon.shape[2]))
+        if splitCharm:
+            x_charm = np.reshape(x_charm, (x_charm.shape[0],x_charm.shape[1]*x_charm.shape[2]))
+        x_muon = np.reshape(x_muon, (x_muon.shape[0],x_muon.shape[1]*x_muon.shape[2]))
+        x_electron = np.reshape(x_electron, (x_electron.shape[0],x_electron.shape[1]*x_electron.shape[2]))
 
     X_test_small = X_test[:1000]
     Y_test_small = Y_test[:1000]
@@ -292,7 +428,7 @@ def synthesize(
     config = hls4ml.utils.config_from_keras_model(
         model, granularity="name",
         # default_precision="ap_fixed<16,6>"
-        default_precision="ap_fixed<20,9>"
+        # default_precision="ap_fixed<20,9>"
     )
     # config = hls4ml.utils.config_from_keras_model(model, granularity='name', default_precision='ap_fixed<32,16>')
     config["Model"]["Strategy"] = "Latency"
@@ -301,6 +437,11 @@ def synthesize(
     # inputPrecision = "ap_fixed<12,4,AP_RND,AP_SAT>"
     # inputPrecision = "ap_fixed<16,7,AP_RND,AP_SAT>"
     # inputPrecision = "ap_fixed<18,8,AP_RND,AP_SAT>"
+    # inputPrecision = "ap_fixed<12,9,AP_RND,AP_SAT>"
+    # inputPrecision = "ap_fixed<14,6,AP_RND,AP_SAT>" #DeepSet
+    # inputPrecision = "ap_fixed<16,6,AP_RND,AP_SAT>"
+    # inputPrecision = "ap_fixed<16,7,AP_RND,AP_SAT>"
+    # inputPrecision = "ap_fixed<16,9,AP_RND,AP_SAT>"
     inputPrecision = "ap_fixed<20,9,AP_RND,AP_SAT>"
 
     print ("Default generated config")
@@ -308,6 +449,7 @@ def synthesize(
 
     for layer in model.layers:
         if layer.__class__.__name__ in ["BatchNormalization", "InputLayer"]:
+        # if layer.__class__.__name__ in ["InputLayer"]:
         # if layer.__class__.__name__ in ["QBatchNormalization","BatchNormalization", "InputLayer"]:
         # if layer.__class__.__name__ in ["InputLayer"]:
             config["LayerName"][layer.name]["Precision"] = inputPrecision
@@ -337,11 +479,11 @@ def synthesize(
     config["LayerName"]["output_class"]["Precision"]["result"] = inputPrecision
     config["LayerName"]["output_reg"]["Precision"]["result"] = inputPrecision
     
-    config["LayerName"]["avgpool"]["Precision"]["result"] = inputPrecision
-    config["LayerName"]["avgpool"]["Precision"] = inputPrecision
+    # config["LayerName"]["avgpool"]["Precision"]["result"] = inputPrecision
+    # config["LayerName"]["avgpool"]["Precision"] = inputPrecision
 
-    config["LayerName"]["qActivationForPool"]["Precision"]["result"] = inputPrecision
-    config["LayerName"]["qActivationForPool"]["Precision"] = inputPrecision
+    # config["LayerName"]["qActivationForPool"]["Precision"]["result"] = inputPrecision
+    # config["LayerName"]["qActivationForPool"]["Precision"] = inputPrecision
 
     config["LayerName"]["output_class"]["Implementation"] = "latency"
     config["LayerName"]["output_reg"]["Implementation"] = "latency"
@@ -355,16 +497,17 @@ def synthesize(
 
     for layer in model.layers:
         if "qDense_phi" in layer.name:
-            print ("Add custom pointwise implementation for layer", layer.name)
-            config["LayerName"][layer.name]["ConvImplementation"] = "Pointwise"
+            if modelArchName in ["DeepSet"]:
+                print ("Add custom pointwise implementation for layer", layer.name)
+                config["LayerName"][layer.name]["ConvImplementation"] = "Pointwise"
             config["LayerName"][layer.name]["Strategy"] = "Latency"
 
 
     layerNames = [layer.name for layer in model.layers]
 
 
-    if "qDense_phi1" in layerNames: config["LayerName"]["qDense_phi1"]["ReuseFactor"] = 2
-    if "qDense_phi2" in layerNames: config["LayerName"]["qDense_phi2"]["ReuseFactor"] = 2
+    # if "qDense_phi1" in layerNames: config["LayerName"]["qDense_phi1"]["ReuseFactor"] = 2
+    # if "qDense_phi2" in layerNames: config["LayerName"]["qDense_phi2"]["ReuseFactor"] = 2
     # if "qDense_phi3" in layerNames: config["LayerName"]["qDense_phi3"]["ReuseFactor"] = 6
     # if "qDense_phi4" in layerNames: config["LayerName"]["qDense_phi4"]["ReuseFactor"] = 6
 
@@ -391,11 +534,12 @@ def synthesize(
         output_dir=outFolder,
         io_type="io_parallel",
 #        part="xcvu9p-flgb2104-2l-e",
-        # part="xcvu13p-flga2577-2-e", #real one
-        part="xcu250-figd2104-2L-e",
+        part="xcvu13p-flga2577-2-e", #real one
+        # part="xcu250-figd2104-2L-e",
         # clock_period=2.5,
         # part="xcvu13p-flga2577-2-e",
         clock_period=2.777777778,
+        backend='Vitis',
     )
 
     print("Compiling the Model !")

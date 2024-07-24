@@ -4,7 +4,6 @@ import argparse
 from models import *
 import tensorflow_model_optimization as tfmot
 
-# import ROOT
 from array import array
 
 from sklearn.metrics import roc_curve, auc,precision_recall_curve
@@ -18,12 +17,10 @@ import pandas
 import numpy
 from histbook import *
 
+from createDataset_chunks import *
+
 
 def shapPlot(shap_values, feature_names, class_names, isMLP = False):
-    # max_display = min(len(feature_names), 7)
-    # def color(i):
-    #     colors = ["r",'b','g','c','m','y']
-    #     return colors[i]
     feature_order = np.argsort(np.sum(np.mean(np.abs(shap_values), axis=1), axis=0))
     num_features = (shap_values[0].shape[1])
     feature_inds = feature_order
@@ -32,12 +29,7 @@ def shapPlot(shap_values, feature_names, class_names, isMLP = False):
 
     axis_color="#333333"
 
-    # if class_inds is None:
     class_inds = np.argsort([-np.abs(shap_values[i]).mean() for i in range(len(shap_values))])
-    # elif class_inds == "original":
-    #     class_inds = range(len(shap_values))
-
-    # pdb.set_trace()
 
     for i, ind in enumerate(class_inds):
         global_shap_values = np.abs(shap_values[ind]).mean(0)
@@ -46,7 +38,6 @@ def shapPlot(shap_values, feature_names, class_names, isMLP = False):
         left_pos += global_shap_values[feature_inds]
     plt.yticks(y_pos, fontsize=15)
     plt.gca().set_yticklabels([feature_names[i] for i in feature_inds])
-    # plt.legend(frameon=False, fontsize=18)
     plt.legend(loc='best', fontsize=18)
 
     plt.gca().xaxis.set_ticks_position('bottom')
@@ -58,78 +49,9 @@ def shapPlot(shap_values, feature_names, class_names, isMLP = False):
     plt.yticks(range(len(feature_order)), [feature_names[i] for i in feature_order], fontsize=15)
     plt.xlabel("mean (shapley value) - (average impact on model output magnitude)", fontsize=15)
     plt.tight_layout()
-    # pdb.set_trace()
-    # plt.savefig()
 
 def rms(array):
    return np.sqrt(np.mean(array ** 2))
-
-# All PF candidate properties
-# pfcand_fields_all = ['puppiweight','pt_rel','pt_rel_log',
-#                     'z0','dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
-#                     'track_chi2norm','track_qual','track_npar','track_nstubs','track_vx','track_vy','track_vz','track_pterror',
-#                     'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-#                     # 'cluster_egvspion','cluster_egvspu'
-#                     # 'pt_log','px','py','pz','eta','phi','mass','energy_log',
-#                     'pt_log','eta','phi',
-#                     ]
-# # A slightly reduced set
-# pfcand_fields_baseline = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"]
-# pfcand_fields_ext1 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-#             'puppiweight','dxy_custom','etarel','pperp_ratio','ppara_ratio']
-# pfcand_fields_ext2 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-#             'pt_log','eta','phi',]
-
-
-pfcand_fields_all = [
-    'puppiweight','pt_rel','pt_rel_log',
-    'dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
-    'track_chi2norm','track_qual','track_npar','track_vx','track_vy','track_vz','track_pterror',
-    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-    'pt_log','eta','phi',
-
-    'emid','quality','tkquality',
-    'track_valid','track_rinv',
-    'track_phizero','track_tanl','track_z0','z0',
-    'track_d0','track_chi2rphi','track_chi2rz',
-    'track_bendchi2','track_hitpattern','track_nstubs',
-    'track_mvaother',
-    'mass'
-
-    ]
-# A slightly reduced set
-pfcand_fields_baselineHW = [
-    'pt','eta','phi',
-    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
-    'z0',
-    ]
-# a custom set
-pfcand_fields_baselineEmulator = [
-    'pt_rel','deta','dphi',
-    'pt_log','eta','phi',
-    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
-    'z0',
-    ]
-# a custom set
-pfcand_fields_ext1 = [
-    'pt_rel','deta','dphi',
-    'pt_log','eta','phi',
-    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
-    'z0',
-    'isfilled',
-    'puppiweight', 'emid', 'quality',
-
-    ]
-# let's take all HW values
-pfcand_fields_ext2 = [
-    'pt_rel','deta','dphi',
-    'pt','eta','phi','mass',
-    'isPhoton', 'isElectronPlus', 'isElectronMinus', 'isMuonPlus', 'isMuonMinus', 'isNeutralHadron', 'isChargedHadronPlus', 'isChargedHadronMinus',
-    'z0',
-    'isfilled',
-    'puppiweight', 'emid', 'quality',
-
-    ]
 
 
 modelnamesDict = {
@@ -148,9 +70,6 @@ def doPlots(
         inputSetTag,
         modelname,
         outname,
-        splitTau,
-        splitGluon,
-        splitCharm,
         regression,
         pruning,
         inputQuant,
@@ -161,41 +80,20 @@ def doPlots(
     modelsAndNames = {}
 
     tempflav = "btgc"
-
-    # PATH = workdir + '/datasets_notreduced_chunked/' + filetag + "/" + tempflav + "/"
-    # PATH = workdir + '/datasets_notreduced_chunked_13X_v9/' + filetag + "/" + tempflav + "/"
-    # PATH = workdir + '/datasets_13X_v9/' + filetag + "/" + tempflav + "/"
-    # PATH = workdir + '/datasets_13X_v9_leptons/' + filetag + "/" + tempflav + "/"
-    # PATH = workdir + '/datasets_13X_v9_DucLeptons/' + filetag + "/" + tempflav + "/"
-    # PATH = workdir + '/datasets_13X_v9_DucLeptons2/' + filetag + "/" + tempflav + "/"
-    PATH_load = workdir + '/datasets_13X_v9_DucLeptons3/' + filetag + "/" + tempflav + "/"
+    PATH_load = workdir + '/datasetsNewComplete2/' + filetag + "/" + tempflav + "/"
     outFolder = "outputPlots/"+outname+"/Training_" + timestamp + "/"
     if not os.path.exists(outFolder):
         os.makedirs(outFolder, exist_ok=True)
 
-    if inputSetTag == "baselineHW":
-        feature_names = pfcand_fields_baselineHW
-    elif inputSetTag == "baselineEmulator":
-        feature_names = pfcand_fields_baselineEmulator
-    elif inputSetTag == "ext1":
-        feature_names = pfcand_fields_ext1
-    elif inputSetTag == "ext2":
-        feature_names = pfcand_fields_ext2
-    elif inputSetTag == "all":
-        feature_names = pfcand_fields_all
+    feature_names = dict_fields[inputSetTag]
 
     chunksmatching = glob.glob(PATH_load+"X_"+inputSetTag+"_test*.parquet")
     print (PATH_load+"X_"+inputSetTag+"_test*.parquet")
     chunksmatching = [chunksm.replace(PATH_load+"X_"+inputSetTag+"_test","").replace(".parquet","").replace("_","") for chunksm in chunksmatching]
 
-    # chunksmatching = chunksmatching[:3]
     if test:
         import random
         chunksmatching = random.sample(chunksmatching, 5)
-        # chunksmatching = chunksmatching[:5]
-
-    # filter = "/(jet)_(eta|phi|pt|pt_raw|mass|energy|bjetscore|tauscore|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
-    # filter = "/(jet)_(eta|eta_phys|phi|pt|pt_phys|pt_raw|bjetscore|tauscore|taupt|pt_corr|genmatch_lep_vis_pt|genmatch_pt|label_b|label_uds|label_g|label_c|label_tau/"
 
     print ("Loading data in all",len(chunksmatching),"chunks.")
 
@@ -229,46 +127,6 @@ def doPlots(
             X_test_global =ak.concatenate((X_test_global, ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_test_"+c+".parquet")))
             Y_test =ak.concatenate((Y_test, ak.from_parquet(PATH_load+"Y_"+inputSetTag+"_test_"+c+".parquet")))
 
-        # if x_b is None:
-        #     x_b = ak.from_parquet(PATH+"X_"+inputSetTag+"_b_"+c+".parquet")
-        #     x_bkg = ak.from_parquet(PATH+"X_"+inputSetTag+"_bkg_"+c+".parquet")
-        #     if splitTau:
-        #         x_taup_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taup_"+c+".parquet")
-        #         if len(x_taup_) > 0: x_taup = x_taup_
-        #         x_taum_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taum_"+c+".parquet")
-        #         if len(x_taum_) > 0: x_taum = x_taum_
-        #     if splitGluon:
-        #         x_gluon = ak.from_parquet(PATH+"X_"+inputSetTag+"_gluon_"+c+".parquet")
-        #     if splitCharm:
-        #         x_charm_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_charm_"+c+".parquet")
-        #         if len(x_charm_) > 0: x_charm = x_charm_
-        #     x_muon_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_muon_"+c+".parquet")
-        #     if len(x_muon_) > 0: x_muon = x_muon_
-        #     x_electron_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_electron_"+c+".parquet")
-        #     if len(x_electron_) > 0: x_electron = x_electron_
-        # else:
-        #     x_b =ak.concatenate((x_b, ak.from_parquet(PATH+"X_"+inputSetTag+"_b_"+c+".parquet")))
-        #     x_bkg =ak.concatenate((x_bkg, ak.from_parquet(PATH+"X_"+inputSetTag+"_bkg_"+c+".parquet")))
-        #     if splitTau:
-        #         x_taup_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taup_"+c+".parquet")
-        #         if len(x_taup_) > 0:
-        #             x_taup =ak.concatenate((x_taup, x_taup_))
-        #         x_taum_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_taum_"+c+".parquet")
-        #         if len(x_taum_) > 0:
-        #             x_taum =ak.concatenate((x_taum, x_taum_))
-        #     if splitGluon:
-        #         x_gluon =ak.concatenate((x_gluon, ak.from_parquet(PATH+"X_"+inputSetTag+"_gluon_"+c+".parquet")))
-        #     if splitCharm:
-        #         x_charm_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_charm_"+c+".parquet")
-        #         if len(x_charm_) > 0:
-        #             x_charm =ak.concatenate((x_charm, x_charm_))
-        #     x_muon_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_muon_"+c+".parquet")
-        #     if len(x_muon_) > 0:
-        #         x_muon =ak.concatenate((x_muon, x_electron_))
-        #     x_electronn_ = ak.from_parquet(PATH+"X_"+inputSetTag+"_electron_"+c+".parquet")
-        #     if len(x_electron_) > 0:
-        #         x_electron =ak.concatenate((x_electron, x_electron_))
-
         x_b_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_b_"+c+".parquet")
         x_b_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_b_"+c+".parquet")
         if len(x_b_) > 0:
@@ -289,47 +147,44 @@ def doPlots(
                 x_bkg =ak.concatenate((x_bkg, x_bkg_))
                 x_bkg_global =ak.concatenate((x_bkg_global, x_bkg_global_))
 
-        if splitTau:
-            x_taup_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_taup_"+c+".parquet")
-            x_taup_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_taup_"+c+".parquet")
-            if len(x_taup_) > 0:
-                if x_taup is None:
-                    x_taup = x_taup_
-                    x_taup_global = x_taup_global_
-                else:
-                    x_taup =ak.concatenate((x_taup, x_taup_))
-                    x_taup_global =ak.concatenate((x_taup_global, x_taup_global_))
-            x_taum_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_taum_"+c+".parquet")
-            x_taum_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_taum_"+c+".parquet")
-            if len(x_taum_) > 0:
-                if x_taum is None:
-                    x_taum = x_taum_
-                    x_taum_global = x_taum_global_
-                else:
-                    x_taum =ak.concatenate((x_taum, x_taum_))
-                    x_taum_global =ak.concatenate((x_taum_global, x_taum_global_))
+        x_taup_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_taup_"+c+".parquet")
+        x_taup_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_taup_"+c+".parquet")
+        if len(x_taup_) > 0:
+            if x_taup is None:
+                x_taup = x_taup_
+                x_taup_global = x_taup_global_
+            else:
+                x_taup =ak.concatenate((x_taup, x_taup_))
+                x_taup_global =ak.concatenate((x_taup_global, x_taup_global_))
+        x_taum_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_taum_"+c+".parquet")
+        x_taum_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_taum_"+c+".parquet")
+        if len(x_taum_) > 0:
+            if x_taum is None:
+                x_taum = x_taum_
+                x_taum_global = x_taum_global_
+            else:
+                x_taum =ak.concatenate((x_taum, x_taum_))
+                x_taum_global =ak.concatenate((x_taum_global, x_taum_global_))
 
-        if splitGluon:
-            x_gluon_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_gluon_"+c+".parquet")
-            x_gluon_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_gluon_"+c+".parquet")
-            if len(x_gluon_) > 0:
-                if x_gluon is None:
-                    x_gluon = x_gluon_
-                    x_gluon_global = x_gluon_global_
-                else:
-                    x_charm =ak.concatenate((x_gluon, x_gluon_))
-                    x_charm_global =ak.concatenate((x_gluon_global, x_gluon_global_))
+        x_gluon_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_gluon_"+c+".parquet")
+        x_gluon_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_gluon_"+c+".parquet")
+        if len(x_gluon_) > 0:
+            if x_gluon is None:
+                x_gluon = x_gluon_
+                x_gluon_global = x_gluon_global_
+            else:
+                x_charm =ak.concatenate((x_gluon, x_gluon_))
+                x_charm_global =ak.concatenate((x_gluon_global, x_gluon_global_))
 
-        if splitCharm:
-            x_charm_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_charm_"+c+".parquet")
-            x_charm_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_charm_"+c+".parquet")
-            if len(x_charm_) > 0:
-                if x_charm is None:
-                    x_charm = x_charm_
-                    x_charm_global = x_charm_global_
-                else:
-                    x_charm =ak.concatenate((x_charm, x_charm_))
-                    x_charm_global =ak.concatenate((x_charm_global, x_charm_global_))
+        x_charm_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_charm_"+c+".parquet")
+        x_charm_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_charm_"+c+".parquet")
+        if len(x_charm_) > 0:
+            if x_charm is None:
+                x_charm = x_charm_
+                x_charm_global = x_charm_global_
+            else:
+                x_charm =ak.concatenate((x_charm, x_charm_))
+                x_charm_global =ak.concatenate((x_charm_global, x_charm_global_))
         
         x_muon_ = ak.from_parquet(PATH_load+"X_"+inputSetTag+"_muon_"+c+".parquet")
         x_muon_global_ = ak.from_parquet(PATH_load+"X_global_"+inputSetTag+"_muon_"+c+".parquet")
@@ -351,18 +206,13 @@ def doPlots(
                 x_electron =ak.concatenate((x_electron, x_electron_))
                 x_electron_global =ak.concatenate((x_electron_global, x_electron_global_))
 
-    # print (X_test_global)
-    # print (X_test_global.fields)
 
     x_b = ak.to_numpy(x_b)
     x_bkg = ak.to_numpy(x_bkg)
-    if splitTau:
-        x_taup = ak.to_numpy(x_taup)
-        x_taum = ak.to_numpy(x_taum)
-    if splitGluon:
-        x_gluon = ak.to_numpy(x_gluon)
-    if splitCharm:
-        x_charm = ak.to_numpy(x_charm)
+    x_taup = ak.to_numpy(x_taup)
+    x_taum = ak.to_numpy(x_taum)
+    x_gluon = ak.to_numpy(x_gluon)
+    x_charm = ak.to_numpy(x_charm)
     x_muon = ak.to_numpy(x_muon)
     x_electron = ak.to_numpy(x_electron)
 
@@ -372,23 +222,17 @@ def doPlots(
     modelArchName = modelname
 
     if modelname == "MLP":
-        # pdb.set_trace()
-        # X_train_val = np.reshape(X_train_val, (X_train_val.shape[0],X_train_val.shape[1]*X_train_val.shape[2]))
         X_test = np.reshape(X_test, (X_test.shape[0],X_test.shape[1]*X_test.shape[2]))
         x_b = np.reshape(x_b, (x_b.shape[0],x_b.shape[1]*x_b.shape[2]))
         x_bkg = np.reshape(x_bkg, (x_bkg.shape[0],x_bkg.shape[1]*x_bkg.shape[2]))
-        if splitTau:
-            x_taup = np.reshape(x_taup, (x_taup.shape[0],x_taup.shape[1]*x_taup.shape[2]))
-            x_taum = np.reshape(x_taum, (x_taum.shape[0],x_taum.shape[1]*x_taum.shape[2]))
-        if splitGluon:
-            x_gluon = np.reshape(x_gluon, (x_gluon.shape[0],x_gluon.shape[1]*x_gluon.shape[2]))
-        if splitCharm:
-            x_charm = np.reshape(x_charm, (x_charm.shape[0],x_charm.shape[1]*x_charm.shape[2]))
+        x_taup = np.reshape(x_taup, (x_taup.shape[0],x_taup.shape[1]*x_taup.shape[2]))
+        x_taum = np.reshape(x_taum, (x_taum.shape[0],x_taum.shape[1]*x_taum.shape[2]))
+        x_gluon = np.reshape(x_gluon, (x_gluon.shape[0],x_gluon.shape[1]*x_gluon.shape[2]))
+        x_charm = np.reshape(x_charm, (x_charm.shape[0],x_charm.shape[1]*x_charm.shape[2]))
         x_muon = np.reshape(x_muon, (x_muon.shape[0],x_muon.shape[1]*x_muon.shape[2]))
         x_electron = np.reshape(x_electron, (x_electron.shape[0],x_electron.shape[1]*x_electron.shape[2]))
 
         # append global features
-        # X_train_val_global = np.stack((X_train_global["jet_pt_raw"],X_train_global["jet_eta"],X_train_global["jet_phi"],X_train_global["jet_npfcand"]), axis=1)
         X_b_global = np.stack((x_b_global["jet_pt_raw"],x_b_global["jet_eta"],x_b_global["jet_phi"],x_b_global["jet_npfcand"]), axis=1)
         X_bkg_global = np.stack((x_bkg_global["jet_pt_raw"],x_bkg_global["jet_eta"],x_bkg_global["jet_phi"],x_bkg_global["jet_npfcand"]), axis=1)
         X_taup_global = np.stack((x_taup_global["jet_pt_raw"],x_taup_global["jet_eta"],x_taup_global["jet_phi"],x_taup_global["jet_npfcand"]), axis=1)
@@ -399,7 +243,6 @@ def doPlots(
         X_electron_global = np.stack((x_electron_global["jet_pt_raw"],x_electron_global["jet_eta"],x_electron_global["jet_phi"],x_electron_global["jet_npfcand"]), axis=1)
         X_test_val_global = np.stack((X_test_global["jet_pt_raw"],X_test_global["jet_eta"],X_test_global["jet_phi"],X_test_global["jet_npfcand"]), axis=1)
 
-        # X_train_val = np.concatenate((np.array(X_train_val_global),X_train_val), axis=-1)
         x_b = np.concatenate((np.array(X_b_global),x_b), axis=-1)
         x_bkg = np.concatenate((np.array(X_bkg_global),x_bkg), axis=-1)
         x_taup = np.concatenate((np.array(X_taup_global),x_taup), axis=-1)
@@ -438,20 +281,16 @@ def doPlots(
     nbits = 8
 
     labels = ["Bkg", "b"]
-    if splitTau:
-        labels.append("Tau p")
-        labels.append("Tau m")
-    if splitGluon:
-        labels.append("Gluon")
-    if splitCharm:
-        labels.append("Charm")
+    labels.append("Tau p")
+    labels.append("Tau m")
+    labels.append("Gluon")
+    labels.append("Charm")
     labels.append("Muon")
     labels.append("Electron")
 
     # Get inference of model
-
     if regression:
-        trainingBasePath = "trainings_regression_notreduced/" + timestamp + "_" + filetag + "_" + flav + "_" + inputSetTag + "_"
+        trainingBasePath = "trainings_regression_weighted/" + timestamp + "_" + filetag + "_" + flav + "_" + inputSetTag + "_"
     else:
         trainingBasePath = "trainings_notreduced/" + filetag + "_" + flav + "_" + inputSetTag + "_"
 
@@ -459,11 +298,9 @@ def doPlots(
     modelname = 'model_'+modelnamesDict[modelname]+"_nconst_"+str(ncands)+"_nfeatures_"+str(nfeatures)+"_nbits_"+str(nbits)
 
     if pruning:
-        # trainingBasePath = trainingBasePath + "_pruned"
         modelpath = modelpath + "_pruned"
         modelname = modelname + "_pruned"
     if inputQuant:
-        # trainingBasePath = trainingBasePath + "_inputQuant"
         modelpath = modelpath + "_inputQuant"
         modelname = modelname + "_inputQuant"
 
@@ -486,25 +323,22 @@ def doPlots(
         modelsAndNames["Y_predict_bkg"] = y_[0]
         modelsAndNames["Y_predict_reg_bkg"] = y_[1]
         X_test_global["out_bkg"] = modelsAndNames["Y_predict"][:,labels.index("Bkg")]
-        if splitTau:
-            y_ = modelsAndNames["model"].predict(x_taup)
-            modelsAndNames["Y_predict_taup"] = y_[0]
-            modelsAndNames["Y_predict_reg_taup"] = y_[1]
-            X_test_global["out_taup"] = modelsAndNames["Y_predict"][:,labels.index("Tau p")]
-            y_ = modelsAndNames["model"].predict(x_taum)
-            modelsAndNames["Y_predict_taum"] = y_[0]
-            modelsAndNames["Y_predict_reg_taum"] = y_[1]
-            X_test_global["out_taum"] = modelsAndNames["Y_predict"][:,labels.index("Tau m")]
-        if splitGluon:
-            y_ = modelsAndNames["model"].predict(x_gluon)
-            modelsAndNames["Y_predict_gluon"] = y_[0]
-            modelsAndNames["Y_predict_reg_gluon"] = y_[1]
-            X_test_global["out_gluon"] = modelsAndNames["Y_predict"][:,labels.index("Gluon")]
-        if splitCharm:
-            y_ = modelsAndNames["model"].predict(x_charm)
-            modelsAndNames["Y_predict_charm"] = y_[0]
-            modelsAndNames["Y_predict_reg_charm"] = y_[1]
-            X_test_global["out_charm"] = modelsAndNames["Y_predict"][:,labels.index("Charm")]
+        y_ = modelsAndNames["model"].predict(x_taup)
+        modelsAndNames["Y_predict_taup"] = y_[0]
+        modelsAndNames["Y_predict_reg_taup"] = y_[1]
+        X_test_global["out_taup"] = modelsAndNames["Y_predict"][:,labels.index("Tau p")]
+        y_ = modelsAndNames["model"].predict(x_taum)
+        modelsAndNames["Y_predict_taum"] = y_[0]
+        modelsAndNames["Y_predict_reg_taum"] = y_[1]
+        X_test_global["out_taum"] = modelsAndNames["Y_predict"][:,labels.index("Tau m")]
+        y_ = modelsAndNames["model"].predict(x_gluon)
+        modelsAndNames["Y_predict_gluon"] = y_[0]
+        modelsAndNames["Y_predict_reg_gluon"] = y_[1]
+        X_test_global["out_gluon"] = modelsAndNames["Y_predict"][:,labels.index("Gluon")]
+        y_ = modelsAndNames["model"].predict(x_charm)
+        modelsAndNames["Y_predict_charm"] = y_[0]
+        modelsAndNames["Y_predict_reg_charm"] = y_[1]
+        X_test_global["out_charm"] = modelsAndNames["Y_predict"][:,labels.index("Charm")]
         y_ = modelsAndNames["model"].predict(x_muon)
         modelsAndNames["Y_predict_muon"] = y_[0]
         modelsAndNames["Y_predict_reg_muon"] = y_[1]
@@ -519,16 +353,13 @@ def doPlots(
         X_test_global["out_b"] = modelsAndNames["Y_predict"][:,labels.index("b")]
         modelsAndNames["Y_predict_bkg"] = modelsAndNames["model"].predict(x_bkg)
         X_test_global["out_bkg"] = modelsAndNames["Y_predict"][:,labels.index("Bkg")]
-        if splitTau:
-            modelsAndNames["Y_predict_tau"] = modelsAndNames["model"].predict(x_tau)
-            X_test_global["out_taup"] = modelsAndNames["Y_predict"][:,labels.index("Tau p")]
-            X_test_global["out_taum"] = modelsAndNames["Y_predict"][:,labels.index("Tau m")]
-        if splitGluon:
-            modelsAndNames["Y_predict_gluon"] = modelsAndNames["model"].predict(x_gluon)
-            X_test_global["out_gluon"] = modelsAndNames["Y_predict"][:,labels.index("Gluon")]
-        if splitCharm:
-            modelsAndNames["Y_predict_charm"] = modelsAndNames["model"].predict(x_charm)
-            X_test_global["out_charm"] = modelsAndNames["Y_predict"][:,labels.index("Charm")]
+        modelsAndNames["Y_predict_tau"] = modelsAndNames["model"].predict(x_tau)
+        X_test_global["out_taup"] = modelsAndNames["Y_predict"][:,labels.index("Tau p")]
+        X_test_global["out_taum"] = modelsAndNames["Y_predict"][:,labels.index("Tau m")]
+        modelsAndNames["Y_predict_gluon"] = modelsAndNames["model"].predict(x_gluon)
+        X_test_global["out_gluon"] = modelsAndNames["Y_predict"][:,labels.index("Gluon")]
+        modelsAndNames["Y_predict_charm"] = modelsAndNames["model"].predict(x_charm)
+        X_test_global["out_charm"] = modelsAndNames["Y_predict"][:,labels.index("Charm")]
 
     if regression:
         X_test_global["jet_pt_reg"] = modelsAndNames["Y_predict_reg"][:,0]
@@ -767,8 +598,6 @@ def doPlots(
     wp_tau_tight = tresholds["tauVSall"][np.argmin(np.abs(np.array(fpr["tauVSall"])-0.1))]
     # print (wp_b_tight, wp_b_medium, wp_b_loose)
 
-    # pdb.set_trace()
-
     for i_roc, label_roc in enumerate(labels_roc):
         fpr[label_roc+"_ref"], tpr[label_roc+"_ref"], tresholds[label_roc+"_ref"] = roc_curve(truths_roc[i_roc][masks_roc[i_roc]], scores_roc_ref[i_roc][masks_roc[i_roc]])
         auc1[label_roc+"_ref"] = auc(fpr[label_roc+"_ref"], tpr[label_roc+"_ref"])
@@ -778,7 +607,6 @@ def doPlots(
     wp_tau_loose_ref = tresholds["tauVSall_ref"][np.argmin(np.abs(np.array(fpr["tauVSall_ref"])-0.5))]
     wp_tau_medium_ref = tresholds["tauVSall_ref"][np.argmin(np.abs(np.array(fpr["tauVSall_ref"])-0.2))]
     wp_tau_tight_ref = tresholds["tauVSall_ref"][np.argmin(np.abs(np.array(fpr["tauVSall_ref"])-0.1))]
-    # print (wp_b_tight_ref, wp_b_medium_ref, wp_b_loose_ref)
 
     # Loop over classes (labels) to get metrics per class
     for i, label in enumerate(labels):
@@ -805,15 +633,12 @@ def doPlots(
     fpr[label], tpr[label], tresholds[label] = roc_curve(Y_test[:,labels.index("Bkg")], 1.-X_test_global["jet_bjetscore"])
     auc1[label] = auc(fpr[label], tpr[label])
 
-    if splitTau:
-        # label = "Tau"
-        # fpr[label], tpr[label], tresholds[label] = roc_curve(ak.concatenate(Y_test[:,labels.index("Tau p")], Y_test[:,labels.index("Tau m")]), X_test_global["jet_tauscore"])
-        label = "Tau p"
-        fpr[label], tpr[label], tresholds[label] = roc_curve(Y_test[:,labels.index("Tau p")], X_test_global["jet_tauscore"])
-        auc1[label] = auc(fpr[label], tpr[label])
-        label = "Tau m"
-        fpr[label], tpr[label], tresholds[label] = roc_curve(Y_test[:,labels.index("Tau m")], X_test_global["jet_tauscore"])
-        auc1[label] = auc(fpr[label], tpr[label])
+    label = "Tau p"
+    fpr[label], tpr[label], tresholds[label] = roc_curve(Y_test[:,labels.index("Tau p")], X_test_global["jet_tauscore"])
+    auc1[label] = auc(fpr[label], tpr[label])
+    label = "Tau m"
+    fpr[label], tpr[label], tresholds[label] = roc_curve(Y_test[:,labels.index("Tau m")], X_test_global["jet_tauscore"])
+    auc1[label] = auc(fpr[label], tpr[label])
 
     modelsAndNames["Reference"]["ROCs"] = {}
     modelsAndNames["Reference"]["ROCs"]["tpr"] = tpr
@@ -872,94 +697,87 @@ def doPlots(
     plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
     plt.cla()
 
-    if splitTau:
-        truthclass = "Tau p"
-        tpr = modelsAndNames["Reference"]["ROCs"]["tpr"]
-        fpr = modelsAndNames["Reference"]["ROCs"]["fpr"]
-        auc1 = modelsAndNames["Reference"]["ROCs"]["auc"]
-        plotlabel ="Reference"
-        plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
-        tpr = modelsAndNames["ROCs"]["tpr"]
-        fpr = modelsAndNames["ROCs"]["fpr"]
-        auc1 = modelsAndNames["ROCs"]["auc"]
-        plotlabel =modelname + " " + flav + " " + inputSetTag
-        plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
-        plt.semilogy()
-        plt.xlabel("Signal efficiency")
-        plt.ylabel("Mistag rate")
-        plt.xlim(0.,1.)
-        plt.ylim(0.001,1)
-        plt.grid(True)
-        plt.legend(loc='best')
-        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
-        plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
-        plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
-        plt.cla()
+    truthclass = "Tau p"
+    tpr = modelsAndNames["Reference"]["ROCs"]["tpr"]
+    fpr = modelsAndNames["Reference"]["ROCs"]["fpr"]
+    auc1 = modelsAndNames["Reference"]["ROCs"]["auc"]
+    plotlabel ="Reference"
+    plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
+    tpr = modelsAndNames["ROCs"]["tpr"]
+    fpr = modelsAndNames["ROCs"]["fpr"]
+    auc1 = modelsAndNames["ROCs"]["auc"]
+    plotlabel =modelname + " " + flav + " " + inputSetTag
+    plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
+    plt.semilogy()
+    plt.xlabel("Signal efficiency")
+    plt.ylabel("Mistag rate")
+    plt.xlim(0.,1.)
+    plt.ylim(0.001,1)
+    plt.grid(True)
+    plt.legend(loc='best')
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
+    plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
+    plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
+    plt.cla()
 
-        truthclass = "Tau m"
-        tpr = modelsAndNames["Reference"]["ROCs"]["tpr"]
-        fpr = modelsAndNames["Reference"]["ROCs"]["fpr"]
-        auc1 = modelsAndNames["Reference"]["ROCs"]["auc"]
-        plotlabel ="Reference"
-        plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
-        tpr = modelsAndNames["ROCs"]["tpr"]
-        fpr = modelsAndNames["ROCs"]["fpr"]
-        auc1 = modelsAndNames["ROCs"]["auc"]
-        plotlabel =modelname + " " + flav + " " + inputSetTag
-        plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
-        plt.semilogy()
-        plt.xlabel("Signal efficiency")
-        plt.ylabel("Mistag rate")
-        plt.xlim(0.,1.)
-        plt.ylim(0.001,1)
-        plt.grid(True)
-        plt.legend(loc='best')
-        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
-        plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
-        plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
-        plt.cla()
+    truthclass = "Tau m"
+    tpr = modelsAndNames["Reference"]["ROCs"]["tpr"]
+    fpr = modelsAndNames["Reference"]["ROCs"]["fpr"]
+    auc1 = modelsAndNames["Reference"]["ROCs"]["auc"]
+    plotlabel ="Reference"
+    plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
+    tpr = modelsAndNames["ROCs"]["tpr"]
+    fpr = modelsAndNames["ROCs"]["fpr"]
+    auc1 = modelsAndNames["ROCs"]["auc"]
+    plotlabel =modelname + " " + flav + " " + inputSetTag
+    plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
+    plt.semilogy()
+    plt.xlabel("Signal efficiency")
+    plt.ylabel("Mistag rate")
+    plt.xlim(0.,1.)
+    plt.ylim(0.001,1)
+    plt.grid(True)
+    plt.legend(loc='best')
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
+    plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
+    plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
+    plt.cla()
 
-    if splitGluon:
-        truthclass = "Gluon"
-        tpr = modelsAndNames["ROCs"]["tpr"]
-        fpr = modelsAndNames["ROCs"]["fpr"]
-        auc1 = modelsAndNames["ROCs"]["auc"]
-        plotlabel =modelname + " " + flav + " " + inputSetTag
-        plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
-        plt.semilogy()
-        plt.xlabel("Signal efficiency")
-        plt.ylabel("Mistag rate")
-        plt.xlim(0.,1.)
-        plt.ylim(0.001,1)
-        plt.grid(True)
-        plt.legend(loc='best')
-        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
-        plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
-        plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
-        plt.cla()
+    truthclass = "Gluon"
+    tpr = modelsAndNames["ROCs"]["tpr"]
+    fpr = modelsAndNames["ROCs"]["fpr"]
+    auc1 = modelsAndNames["ROCs"]["auc"]
+    plotlabel =modelname + " " + flav + " " + inputSetTag
+    plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
+    plt.semilogy()
+    plt.xlabel("Signal efficiency")
+    plt.ylabel("Mistag rate")
+    plt.xlim(0.,1.)
+    plt.ylim(0.001,1)
+    plt.grid(True)
+    plt.legend(loc='best')
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
+    plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
+    plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
+    plt.cla()
 
-    if splitCharm:
-        truthclass = "Charm"
-        tpr = modelsAndNames["ROCs"]["tpr"]
-        fpr = modelsAndNames["ROCs"]["fpr"]
-        auc1 = modelsAndNames["ROCs"]["auc"]
-        plotlabel =modelname + " " + flav + " " + inputSetTag
-        plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
-        plt.semilogy()
-        plt.xlabel("Signal efficiency")
-        plt.ylabel("Mistag rate")
-        plt.xlim(0.,1.)
-        plt.ylim(0.001,1)
-        plt.grid(True)
-        plt.legend(loc='best')
-        hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
-        plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
-        plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
-        plt.cla()
-    
-                #     "bVSuds", "bVSg",, "bVSc", "bVStau",
-                #   "cVSuds", "cVSg", "cVSb", "cVStau",
-                #   "tauVSuds", "tauVSg",, "tauVSb", "tauVSc",
+    truthclass = "Charm"
+    tpr = modelsAndNames["ROCs"]["tpr"]
+    fpr = modelsAndNames["ROCs"]["fpr"]
+    auc1 = modelsAndNames["ROCs"]["auc"]
+    plotlabel =modelname + " " + flav + " " + inputSetTag
+    plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
+    plt.semilogy()
+    plt.xlabel("Signal efficiency")
+    plt.ylabel("Mistag rate")
+    plt.xlim(0.,1.)
+    plt.ylim(0.001,1)
+    plt.grid(True)
+    plt.legend(loc='best')
+    hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
+    plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".png")
+    plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
+    plt.cla()
 
     # plot all b ROCs in one
     label_roc = "AllB"
@@ -1064,11 +882,6 @@ def doPlots(
     plt.plot(tpr["gluonVSb"],fpr["gluonVSb"],label='%s Tagger, AUC = %.2f%%'%("gluon vs b", auc1["gluonVSb"]*100.))
     plt.plot(tpr["gluonVStau"],fpr["gluonVStau"],label='%s Tagger, AUC = %.2f%%'%("gluon vs tau", auc1["gluonVStau"]*100.))
     plt.plot(tpr["gluonVSc"],fpr["gluonVSc"],label='%s Tagger, AUC = %.2f%%'%("gluon vs c", auc1["gluonVSc"]*100.))
-    # plt.plot(tpr["gluonVSAll"],fpr["gluonVSAll"],label='%s Tagger, AUC = %.2f%%'%("gluon vs all", auc1["gluonVSAll"]*100.))
-    # plt.plot(tpr["tauVSuds"+"_ref"],fpr["tauVSuds"+"_ref"],label='%s Tagger, AUC = %.2f%%'%("ref tau vs uds", auc1["tauVSuds"+"_ref"]*100.), linestyle="--", color="blue")
-    # plt.plot(tpr["tauVSg"+"_ref"],fpr["tauVSg"+"_ref"],label='%s Tagger, AUC = %.2f%%'%("ref tau vs g", auc1["tauVSg"+"_ref"]*100.), linestyle="--", color="orange")
-    # plt.plot(tpr["tauVSb"+"_ref"],fpr["tauVSb"+"_ref"],label='%s Tagger, AUC = %.2f%%'%("ref tau vs b", auc1["tauVSb"+"_ref"]*100.), linestyle="--", color="green")
-    # plt.plot(tpr["tauVSc"+"_ref"],fpr["tauVSc"+"_ref"],label='%s Tagger, AUC = %.2f%%'%("ref tau vs c", auc1["tauVSc"+"_ref"]*100.), linestyle="--", color="red")
     plt.semilogy()
     plt.xlabel("Signal efficiency")
     plt.ylabel("Mistag rate")
@@ -1114,14 +927,10 @@ def doPlots(
         X = np.linspace(0.0, 1.0, 100)
         histo = plt.hist(X_test_global[X_test_global["label_b"]>0][score_loop], bins=X, label='b' ,histtype='step', density = True)
         histo = plt.hist(X_test_global[X_test_global["label_uds"]>0][score_loop], bins=X, label='uds' ,histtype='step', density = True)
-        if splitTau:
-            # histo = plt.hist(X_test_global[X_test_global["label_tau"]>0][score_loop], bins=X, label='Tau' ,histtype='step', density = True)
-            histo = plt.hist(X_test_global[X_test_global["label_taup"]>0][score_loop], bins=X, label='Tau p' ,histtype='step', density = True)
-            histo = plt.hist(X_test_global[X_test_global["label_taum"]>0][score_loop], bins=X, label='Tau m' ,histtype='step', density = True)
-        if splitGluon:
-            histo = plt.hist(X_test_global[X_test_global["label_g"]>0][score_loop], bins=X, label='g' ,histtype='step', density = True)
-        if splitCharm:
-            histo = plt.hist(X_test_global[X_test_global["label_c"]>0][score_loop], bins=X, label='c' ,histtype='step', density = True)
+        histo = plt.hist(X_test_global[X_test_global["label_taup"]>0][score_loop], bins=X, label='Tau p' ,histtype='step', density = True)
+        histo = plt.hist(X_test_global[X_test_global["label_taum"]>0][score_loop], bins=X, label='Tau m' ,histtype='step', density = True)
+        histo = plt.hist(X_test_global[X_test_global["label_g"]>0][score_loop], bins=X, label='g' ,histtype='step', density = True)
+        histo = plt.hist(X_test_global[X_test_global["label_c"]>0][score_loop], bins=X, label='c' ,histtype='step', density = True)
         histo = plt.hist(X_test_global[X_test_global["label_muon"]>0][score_loop], bins=X, label='muon' ,histtype='step', density = True)
         histo = plt.hist(X_test_global[X_test_global["label_electron"]>0][score_loop], bins=X, label='electron' ,histtype='step', density = True)
         plt.xlabel(score_loop.replace("_"," ")+' score')
@@ -1132,96 +941,6 @@ def doPlots(
         plt.savefig(outFolder+"/score_"+score_loop+".pdf")
         plt.cla()
 
-    # X = np.linspace(0.0, 1.0, 100)
-    # histo = plt.hist(X_test_global[X_test_global["label_b"]>0]["b_vs_udsg"], bins=X, label='b' ,histtype='step', density = True)
-    # histo = plt.hist(X_test_global[X_test_global["label_uds"]>0]["b_vs_udsg"], bins=X, label='uds' ,histtype='step', density = True)
-    # if splitTau:
-    #     histo = plt.hist(X_test_global[X_test_global["label_tau"]>0]["b_vs_udsg"], bins=X, label='Tau' ,histtype='step', density = True)
-    # if splitGluon:
-    #     histo = plt.hist(X_test_global[X_test_global["label_gluon"]>0]["b_vs_udsg"], bins=X, label='g' ,histtype='step', density = True)
-    # if splitCharm:
-    #     histo = plt.hist(X_test_global[X_test_global["label_charm"]>0]["b_vs_udsg"], bins=X, label='c' ,histtype='step', density = True)
-    # plt.xlabel('b vs udsg score')
-    # plt.legend(prop={'size': 10})
-    # plt.legend(loc='upper right')
-    # hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
-    # plt.savefig(outFolder+"/score_b_vs_udsg"+".png")
-    # plt.savefig(outFolder+"/score_b_vs_udsg"+".pdf")
-    # plt.cla()
-
-    # X = np.linspace(0.0, 1.0, 100)
-    # histo = plt.hist(modelsAndNames["Y_predict_b"][:,labels.index("Bkg")], bins=X, label='b' ,histtype='step', density = True)
-    # histo = plt.hist(modelsAndNames["Y_predict_bkg"][:,labels.index("Bkg")], bins=X, label='uds' ,histtype='step', density = True)
-    # if splitTau:
-    #     histo = plt.hist(modelsAndNames["Y_predict_tau"][:,labels.index("Bkg")], bins=X, label='Tau' ,histtype='step', density = True)
-    # if splitGluon:
-    #     histo = plt.hist(modelsAndNames["Y_predict_gluon"][:,labels.index("Bkg")], bins=X, label='g' ,histtype='step', density = True)
-    # if splitCharm:
-    #     histo = plt.hist(modelsAndNames["Y_predict_charm"][:,labels.index("Bkg")], bins=X, label='c' ,histtype='step', density = True)
-    # plt.xlabel('uds score')
-    # plt.legend(prop={'size': 10})
-    # plt.legend(loc='upper right')
-    # hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
-    # plt.savefig(outFolder+"/score_uds"+".png")
-    # plt.savefig(outFolder+"/score_uds"+".pdf")
-    # plt.cla()
-
-    # if splitTau:
-    #     X = np.linspace(0.0, 1.0, 100)
-    #     histo = plt.hist(modelsAndNames["Y_predict_b"][:,labels.index("Tau")], bins=X, label='b' ,histtype='step', density = True)
-    #     histo = plt.hist(modelsAndNames["Y_predict_bkg"][:,labels.index("Tau")], bins=X, label='uds' ,histtype='step', density = True)
-    #     if splitTau:
-    #         histo = plt.hist(modelsAndNames["Y_predict_tau"][:,labels.index("Tau")], bins=X, label='Tau' ,histtype='step', density = True)
-    #     if splitGluon:
-    #         histo = plt.hist(modelsAndNames["Y_predict_gluon"][:,labels.index("Tau")], bins=X, label='g' ,histtype='step', density = True)
-    #     if splitCharm:
-    #         histo = plt.hist(modelsAndNames["Y_predict_charm"][:,labels.index("Tau")], bins=X, label='c' ,histtype='step', density = True)
-    #     plt.xlabel('Tau score')
-    #     plt.legend(prop={'size': 10})
-    #     plt.legend(loc='upper right')
-    #     hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
-    #     plt.savefig(outFolder+"/score_tau"+".png")
-    #     plt.savefig(outFolder+"/score_tau"+".pdf")
-    #     plt.cla()
-
-    # if splitGluon:
-    #     X = np.linspace(0.0, 1.0, 100)
-    #     histo = plt.hist(modelsAndNames["Y_predict_b"][:,labels.index("Gluon")], bins=X, label='b' ,histtype='step', density = True)
-    #     histo = plt.hist(modelsAndNames["Y_predict_bkg"][:,labels.index("Gluon")], bins=X, label='uds' ,histtype='step', density = True)
-    #     if splitTau:
-    #         histo = plt.hist(modelsAndNames["Y_predict_tau"][:,labels.index("Gluon")], bins=X, label='Tau' ,histtype='step', density = True)
-    #     if splitGluon:
-    #         histo = plt.hist(modelsAndNames["Y_predict_gluon"][:,labels.index("Gluon")], bins=X, label='g' ,histtype='step', density = True)
-    #     if splitCharm:
-    #         histo = plt.hist(modelsAndNames["Y_predict_charm"][:,labels.index("Gluon")], bins=X, label='c' ,histtype='step', density = True)
-    #     plt.xlabel('Gluon score')
-    #     plt.legend(prop={'size': 10})
-    #     plt.legend(loc='upper right')
-    #     hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
-    #     plt.savefig(outFolder+"/score_gluon"+".png")
-    #     plt.savefig(outFolder+"/score_gluon"+".pdf")
-    #     plt.cla()
-
-    # if splitCharm:
-    #     X = np.linspace(0.0, 1.0, 100)
-    #     histo = plt.hist(modelsAndNames["Y_predict_b"][:,labels.index("Charm")], bins=X, label='b' ,histtype='step', density = True)
-    #     histo = plt.hist(modelsAndNames["Y_predict_bkg"][:,labels.index("Charm")], bins=X, label='uds' ,histtype='step', density = True)
-    #     if splitTau:
-    #         histo = plt.hist(modelsAndNames["Y_predict_tau"][:,labels.index("Charm")], bins=X, label='Tau' ,histtype='step', density = True)
-    #     if splitGluon:
-    #         histo = plt.hist(modelsAndNames["Y_predict_gluon"][:,labels.index("Charm")], bins=X, label='g' ,histtype='step', density = True)
-    #     if splitCharm:
-    #         histo = plt.hist(modelsAndNames["Y_predict_charm"][:,labels.index("Charm")], bins=X, label='c' ,histtype='step', density = True)
-    #     plt.xlabel('Charm score')
-    #     plt.legend(prop={'size': 10})
-    #     plt.legend(loc='upper right')
-    #     hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
-    #     plt.savefig(outFolder+"/score_gluon"+".png")
-    #     plt.savefig(outFolder+"/score_gluon"+".pdf")
-    #     plt.cla()
-
-
-    
     # efficiency vs pT
     # x_bins_pt = np.array([0., 15., 20., 30., 40., 50., 75., 100., 125., 150., 175., 200., 300., 500., 750., 1000.])
     x_bins_pt = np.array([15., 20., 30., 40., 50., 60., 70., 80., 90., 100., 125., 150., 175., 200., 250., 300., 400., 500., 750., 1000.])
@@ -1388,8 +1107,6 @@ def doPlots(
     plt.cla()
 
     # efficiency vs eta
-    # x_bins_eta = np.array([-2.5, -2., -1.5 ,-1., -0.5, 0., 0.5, 1., 1.5, 2., 2.5])
-
     h_wp1_eta = Hist(split("jet_eta_phys", x_bins_eta), cut("wp1"))
     h_wp2_eta = Hist(split("jet_eta_phys", x_bins_eta), cut("wp2"))
     h_wp3_eta = Hist(split("jet_eta_phys", x_bins_eta), cut("wp3"))
@@ -1435,9 +1152,6 @@ def doPlots(
     plt.savefig(outFolder+"/eff_tau_eta"+".png")
     plt.savefig(outFolder+"/eff_tau_eta"+".pdf")
     plt.cla()
-
-
-
 
 
     # get response and resolution plots
@@ -1660,7 +1374,6 @@ def doPlots(
         plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression', linestyle = "-", marker = "o")
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
-        # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
         hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
@@ -1681,7 +1394,6 @@ def doPlots(
         plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - b', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
-        # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
         hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
@@ -1702,7 +1414,6 @@ def doPlots(
         plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - c', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
-        # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
         hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
@@ -1723,7 +1434,6 @@ def doPlots(
         plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - uds', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
-        # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
         hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
@@ -1744,7 +1454,6 @@ def doPlots(
         plt.errorbar(centers, means_reg, yerr = means_reg_err, label='Regression - g', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
-        # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
         hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
@@ -1768,7 +1477,6 @@ def doPlots(
         plt.errorbar(centers, means_refReg, yerr = means_refReg_err, label='Baseline-regression - tau', linestyle = "-", marker = "o", color = 'violet')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('Response (reco/gen)')
-        # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
         hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
@@ -1782,7 +1490,6 @@ def doPlots(
         plt.plot(centers, stds_reg, label='Regression', linestyle = "-", marker = "o", color = '#2ca02c')
         plt.xlabel('Jet gen $p_T$')
         plt.ylabel('RMS (Response (reco/gen))')
-        # plt.xlim(0.,2.)
         plt.legend(prop={'size': 10})
         plt.legend(loc='upper right')
         hep.cms.label("Private Work", data=False, rlabel = "14 TeV (PU 200)")
@@ -1919,21 +1626,16 @@ def doPlots(
             model2 = keras.Model(model.input, model.output[0])
             model3 = keras.Model(model.input, model.output[1])
             for explainer, name  in [(shap.GradientExplainer(model2, X_test[:1000]), "GradientExplainer"), ]:
-                # shap.initjs()
                 print("... {0}: explainer.shap_values(X)".format(name))
                 shap_values = explainer.shap_values(X_test[:1000])
                 new = np.sum(shap_values, axis = 2)
                 print("... shap summary_plot classification")
                 plt.clf()
                 labels = ["uds", "b"]
-                if splitTau:
-                    # labels.append("Tau")
-                    labels.append("Tau p")
-                    labels.append("Tau m")
-                if splitGluon:
-                    labels.append("Gluon")
-                if splitCharm:
-                    labels.append("Charm")
+                labels.append("Tau p")
+                labels.append("Tau m")
+                labels.append("Gluon")
+                labels.append("Charm")
                 labels.append("Muon")
                 labels.append("Electron")
                 shapPlot(new, feature_names, labels)
@@ -1941,7 +1643,6 @@ def doPlots(
                 plt.savefig(outFolder+"/shap_summary_class_"+inputSetTag+"_{0}.png".format(name))
 
             for explainer, name  in [(shap.GradientExplainer(model3, X_test[:1000]), "GradientExplainer"), ]:
-                # shap.initjs()
                 print("... {0}: explainer.shap_values(X)".format(name))
                 shap_values = explainer.shap_values(X_test[:1000])
                 new = np.sum(shap_values, axis = 2)
@@ -1962,15 +1663,11 @@ if __name__ == "__main__":
     parser.add_argument('-c','--flav', help = 'Which flavor to run, options are b, bt, btg.')
     parser.add_argument('-i','--input', help = 'Which input to run, options are baseline, ext1, all.')
     parser.add_argument('-m','--model', help = 'Which model to evaluate, options are DeepSet, DeepSet-MHA.')
-    parser.add_argument('--splitTau', dest = 'splitTau', default = False, action='store_true')
-    parser.add_argument('--splitGluon', dest = 'splitGluon', default = False, action='store_true')
-    parser.add_argument('--splitCharm', dest = 'splitCharm', default = False, action='store_true')
     parser.add_argument('--regression', dest = 'regression', default = False, action='store_true')
     parser.add_argument('--pruning', dest = 'pruning', default = False, action='store_true')
     parser.add_argument('--inputQuant', dest = 'inputQuant', default = False, action='store_true')
     parser.add_argument('--timestamp', dest = 'timestamp')
     parser.add_argument('--test', dest = 'test', default = False, action='store_true')
-    # parser.add_argument('--classweights', dest = 'classweights', default = False, action='store_true')
 
 
     args = parser.parse_args()
@@ -1982,21 +1679,13 @@ if __name__ == "__main__":
     print('#'*30)
 
 
-    # nnConfig = {
-    #     "classweights": args.classweights,
-    # }
-
     doPlots(
         args.file,
         args.timestamp,
         args.flav,
         args.input,
         args.model,
-        # nnConfig,
         args.outname,
-        args.splitTau,
-        args.splitGluon,
-        args.splitCharm,
         args.regression,
         args.pruning,
         args.inputQuant,

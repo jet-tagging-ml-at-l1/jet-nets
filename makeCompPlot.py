@@ -3,33 +3,13 @@ from dataset import *
 import argparse
 from models import *
 import tensorflow_model_optimization as tfmot
-# from tensorflow_model_optimization.sparsity import keras as sparsity
-# from tensorflow_model_optimization.python.core.sparsity.keras import pruning_callbacks, pruning_wrapper,  pruning_schedule
-# from tensorflow_model_optimization.sparsity.keras import strip_pruning
-
-
 from sklearn.metrics import roc_curve, auc,precision_recall_curve
 import matplotlib.pyplot as plt
-# import pandas as pd
-# import shap
 import json
 import glob
-
 import pdb
 
-# All PF candidate properties
-pfcand_fields_all = ['puppiweight','pt_rel','pt_rel_log',
-                    'z0','dxy','dxy_custom','id','charge','pperp_ratio','ppara_ratio','deta','dphi','etarel','track_chi2',
-                    'track_chi2norm','track_qual','track_npar','track_nstubs','track_vx','track_vy','track_vz','track_pterror',
-                    'cluster_hovere','cluster_sigmarr','cluster_abszbarycenter','cluster_emet',
-                    # 'cluster_egvspion','cluster_egvspu'
-                    # 'pt','pt_log','px','py','pz','eta','phi','mass','energy','energy_log','pt_log',
-                    ]
-# A slightly reduced set
-pfcand_fields_baseline = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz"]
-pfcand_fields_ext1 = ['pt_rel','deta','dphi','charge','id',"track_vx","track_vy","track_vz",
-            'puppiweight','dxy_custom','etarel','pperp_ratio','ppara_ratio']
-
+from createDataset_chunks import *
 
 modelnamesDict = {
     "DeepSet": "QDeepSets_PermutationInv",
@@ -45,8 +25,6 @@ def doPlots(
         modelNames,
         nnConfig,
         outname,
-        splitTau,
-        splitGluon,
         save = True,
         workdir = "./",):
 
@@ -61,12 +39,7 @@ def doPlots(
         if not os.path.exists(outFolder):
             os.makedirs(outFolder)
 
-        if inputSetTag == "baseline":
-            feature_names = pfcand_fields_baseline
-        elif inputSetTag == "ext1":
-            feature_names = pfcand_fields_ext1
-        elif inputSetTag == "all":
-            feature_names = pfcand_fields_all
+        feature_names = dict_fields[inputSetTag]
 
         chunksmatching = glob.glob(PATH+"X_"+inputSetTag+"_test*.parquet")
         chunksmatching = [chunksm.replace(PATH+"X_"+inputSetTag+"_test","").replace(".parquet","").replace("_","") for chunksm in chunksmatching]
@@ -78,7 +51,6 @@ def doPlots(
         X_test = None
         X_test_global = None
         Y_test = None
-        # for c in chunksmatching[:3]:
         for c in chunksmatching:
             if X_test is None:
                 X_test = ak.from_parquet(PATH+"X_"+inputSetTag+"_test_"+c+".parquet")
@@ -103,9 +75,6 @@ def doPlots(
 
                 print ("Get performance for", inputSetTag, flav, modelname)
 
-                # splitTau = "t" in flav
-                # splitGluon = "g" in flav
-
 
                 custom_objects_ = {
                     "AAtt": AAtt,
@@ -122,10 +91,8 @@ def doPlots(
                 nbits = 8
 
                 labels = ["Bkg", "b"]
-                if splitTau:
-                    labels.append("Tau")
-                if splitGluon:
-                    labels.append("Gluon")
+                labels.append("Tau")
+                labels.append("Gluon")
 
                 # Get inference of some models
 
@@ -162,7 +129,6 @@ def doPlots(
                     TN[label] = NN[label] - FP[label]
                     FN[label] = NP[label] - TP[label]
                     auc1[label] = auc(fpr[label], tpr[label])
-                    # plt.plot(tpr[label], fpr[label], label='%s tagger, AUC = %.1f%%'%(label, auc1[label]*100.))
 
                 modelsAndNames[inputSetTag][flav][modelname]["ROCs"] = {}
                 modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["tpr"] = tpr
@@ -193,17 +159,16 @@ def doPlots(
                 FN[label] = NP[label] - TP[label]
                 auc1[label] = auc(fpr[label], tpr[label])
 
-                if splitTau:
-                    label = "Tau"
-                    fpr[label], tpr[label], tresholds[label] = roc_curve(Y_test[:,2], X_test_global["jet_tauscore"])
-                    _ , N = np.unique(Y_test[:,i], return_counts=True) # count the NEGATIVES and POSITIVES samples in your test set
-                    NN[label] = N[0] # number of NEGATIVES 
-                    NP[label] = N[1] # number of POSITIVES
-                    TP[label] = tpr[label]*NP[label]
-                    FP[label] = fpr[label]*NN[label] 
-                    TN[label] = NN[label] - FP[label]
-                    FN[label] = NP[label] - TP[label]
-                    auc1[label] = auc(fpr[label], tpr[label])
+                label = "Tau"
+                fpr[label], tpr[label], tresholds[label] = roc_curve(Y_test[:,2], X_test_global["jet_tauscore"])
+                _ , N = np.unique(Y_test[:,i], return_counts=True) # count the NEGATIVES and POSITIVES samples in your test set
+                NN[label] = N[0] # number of NEGATIVES 
+                NP[label] = N[1] # number of POSITIVES
+                TP[label] = tpr[label]*NP[label]
+                FP[label] = fpr[label]*NN[label] 
+                TN[label] = NN[label] - FP[label]
+                FN[label] = NP[label] - TP[label]
+                auc1[label] = auc(fpr[label], tpr[label])
 
                 modelsAndNames[inputSetTag][flav]["Reference"]["ROCs"] = {}
                 modelsAndNames[inputSetTag][flav]["Reference"]["ROCs"]["tpr"] = tpr
@@ -242,23 +207,22 @@ def doPlots(
     plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
     plt.cla()
 
-    if splitTau:
-        truthclass = "Tau"
-        for inputSetTag in inputSetTags:
-            for flav in flavs:
-            # reference tagger, only once
-                if inputSetTag == inputSetTags[0] and flav == flavs[0]:
-                    tpr = modelsAndNames[inputSetTags[0]][flavs[0]]["Reference"]["ROCs"]["tpr"]
-                    fpr = modelsAndNames[inputSetTags[0]][flavs[0]]["Reference"]["ROCs"]["fpr"]
-                    auc1 = modelsAndNames[inputSetTags[0]][flavs[0]]["Reference"]["ROCs"]["auc"]
-                    plotlabel ="Reference"
-                    plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
-                for modelname in modelNames:
-                    tpr = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["tpr"]
-                    fpr = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["fpr"]
-                    auc1 = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["auc"]
-                    plotlabel =modelname + " " + flav + " " + inputSetTag
-                    plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
+    truthclass = "Tau"
+    for inputSetTag in inputSetTags:
+        for flav in flavs:
+        # reference tagger, only once
+            if inputSetTag == inputSetTags[0] and flav == flavs[0]:
+                tpr = modelsAndNames[inputSetTags[0]][flavs[0]]["Reference"]["ROCs"]["tpr"]
+                fpr = modelsAndNames[inputSetTags[0]][flavs[0]]["Reference"]["ROCs"]["fpr"]
+                auc1 = modelsAndNames[inputSetTags[0]][flavs[0]]["Reference"]["ROCs"]["auc"]
+                plotlabel ="Reference"
+                plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
+            for modelname in modelNames:
+                tpr = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["tpr"]
+                fpr = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["fpr"]
+                auc1 = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["auc"]
+                plotlabel =modelname + " " + flav + " " + inputSetTag
+                plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
         plt.semilogy()
         plt.xlabel("Signal efficiency")
         plt.ylabel("Mistag rate")
@@ -271,23 +235,15 @@ def doPlots(
         plt.savefig(outFolder+"/ROC_comparison_"+truthclass+".pdf")
         plt.cla()
 
-    if splitGluon:
-        truthclass = "Gluon"
-        for inputSetTag in inputSetTags:
-            for flav in flavs:
-            # reference tagger, only once
-                # if inputSetTag == inputSetTags[0] and flav == flavs[0]:
-                #     tpr = modelsAndNames[inputSetTags[0]][flavs[0]]["Reference"]["ROCs"]["tpr"]
-                #     fpr = modelsAndNames[inputSetTags[0]][flavs[0]]["Reference"]["ROCs"]["fpr"]
-                #     auc1 = modelsAndNames[inputSetTags[0]][flavs[0]]["Reference"]["ROCs"]["auc"]
-                #     plotlabel ="Reference"
-                #     plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
-                for modelname in modelNames:
-                    tpr = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["tpr"]
-                    fpr = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["fpr"]
-                    auc1 = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["auc"]
-                    plotlabel =modelname + " " + flav + " " + inputSetTag
-                    plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
+    truthclass = "Gluon"
+    for inputSetTag in inputSetTags:
+        for flav in flavs:
+            for modelname in modelNames:
+                tpr = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["tpr"]
+                fpr = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["fpr"]
+                auc1 = modelsAndNames[inputSetTag][flav][modelname]["ROCs"]["auc"]
+                plotlabel =modelname + " " + flav + " " + inputSetTag
+                plt.plot(tpr[truthclass],fpr[truthclass],label='%s Tagger, AUC = %.2f%%'%(plotlabel, auc1[truthclass]*100.))
         plt.semilogy()
         plt.xlabel("Signal efficiency")
         plt.ylabel("Mistag rate")
@@ -310,8 +266,6 @@ if __name__ == "__main__":
     parser.add_argument('-c','--classes',nargs='+', help = 'Which flavors to run, options are b, bt, btg.')
     parser.add_argument('-i','--inputs',nargs='+', help = 'Which inputs to run, options are baseline, ext1, all.')
     parser.add_argument('-m','--models',nargs='+', help = 'Which models to evaluate, options are DeepSet, DeepSet-MHA.')
-    parser.add_argument('--splitTau', dest = 'splitTau', default = False)
-    parser.add_argument('--splitGluon', dest = 'splitGluon', default = False)
     parser.add_argument('--classweights', dest = 'classweights', default = False)
 
 
@@ -335,6 +289,4 @@ if __name__ == "__main__":
         args.models,
         nnConfig,
         args.outname,
-        args.splitTau,
-        args.splitGluon,
         )

@@ -1,5 +1,7 @@
 #Custom things:
 datasets_*
+datasets*
+inputFeaturePlots*
 error*
 out/
 out_*

@@ -3,24 +3,16 @@ from dataset import *
 import argparse
 from models import *
 import tensorflow_model_optimization as tfmot
-
-# import ROOT
 from array import array
-
 from sklearn.metrics import roc_curve, auc,precision_recall_curve
 import matplotlib.pyplot as plt
 import json
 import glob
 import pdb
-
 import pandas
 import numpy
 from histbook import *
 
-# recoTauFile = "../recoTauNTuples/baselineAll200.root"
-# genTauFile = "../genTauNTuples/baselineAll200.root"
-
-# outFolder = "matchingPlots/baselineTRK/"
 
 recoTauFile = "../recoTauNTuples/extendedAll200.root"
 genTauFile = "../genTauNTuples/extendedAll200.root"
@@ -32,7 +24,6 @@ if not os.path.exists(outFolder):
 
 
 # start from gen taus
-    
 filter = "/(jet)_(eta|phi|pt|pt_log|pt_raw|mass|energy|px|py|pz|bjetscore|tauscore|taupt|pt_corr|tauflav|muflav|elflav|taudecaymode|lepflav|taucharge|genmatch_pt|genmatch_eta|genmatch_phi|genmatch_mass|genmatch_hflav|genmatch_lep_vis_pt|genmatch_lep_pt|genmatch_pflav|npfcand|pfcand_pt|pfcand_pt_rel|pfcand_pt_rel_log|pfcand_px|pfcand_py|pfcand_pz|pfcand_pt_log|pfcand_eta|pfcand_phi|pfcand_mass|pfcand_energy|pfcand_energy_log|pfcand_puppiweight|pfcand_z0|pfcand_dxy|pfcand_dxy_custom|pfcand_id|pfcand_charge|pfcand_pperp_ratio|pfcand_ppara_ratio|pfcand_deta|pfcand_dphi|pfcand_etarel|pfcand_track_chi2|pfcand_track_chi2norm|pfcand_track_qual|pfcand_track_npar|pfcand_track_nstubs|pfcand_track_vx|pfcand_track_vy|pfcand_track_vz|pfcand_track_pterror|pfcand_cluster_hovere|pfcand_cluster_sigmarr|pfcand_cluster_abszbarycenter|pfcand_cluster_emet|pfcand_cluster_egvspion|pfcand_cluster_egvspu)/"
 f = uproot.open(genTauFile)
 data = f["gentauntuple/GenTaus"].arrays(
